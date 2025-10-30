@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - New Analysis Request</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        h1 {
+            text-align: center;
+        }
+        .form-container {
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 2.5em;
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 1.5em;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            color: var(--header-color);
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 0.8em;
+            border: 1px solid var(--border-color);
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            border-radius: 5px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(38, 139, 210, 0.2);
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>New Analysis Request</h1>
+    <div class="form-container">
+        <form action="/submit_request" method="post">
+            <div class="form-group">
+                <label for="project_path">Project Code Path</label>
+                <input type="text" id="project_path" name="project_path" placeholder="e.g., C:\Users\user\projects\my-project" required>
+            </div>
+            <div class="form-group">
+                <label for="build_command">Build Command</label>
+                <input type="text" id="build_command" name="build_command" placeholder="e.g., mvn clean install" required>
+            </div>
+            <div class="form-group">
+                <label for="load_script">Loading Script (Python)</label>
+                <textarea id="load_script" name="load_script" placeholder="Enter the Python script for loading/executing the project..." required></textarea>
+            </div>
+            <div class="button-container">
+                <button type="submit" class="btn">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

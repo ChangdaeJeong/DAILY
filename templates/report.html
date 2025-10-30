@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - Analysis Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .summary, .issue {
+            background-color: var(--card-bg-color);
+            padding: 1.5em 2em;
+            border-radius: 8px;
+            margin-bottom: 2em;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5em;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-item .label {
+            font-size: 0.9em;
+            color: var(--text-color);
+        }
+        .summary-item .value {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: var(--header-color);
+        }
+        .issue-header {
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            padding: 0.5em 0;
+        }
+        .issue-details {
+            display: none; /* Hidden by default */
+            margin-top: 1em;
+            padding-left: 1.5em;
+            border-left: 3px solid var(--primary-color);
+        }
+        pre {
+            background-color: #f9f9f9;
+            border: 1px solid var(--border-color);
+            padding: 1em;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--text-color);
+        }
+        .status-success { color: #28a745; }
+        .status-failed { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analysis Report for <span id="project-name">Sample Project A</span></h1>
+        
+        <div class="summary">
+            <h2>Progress Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="label">Files Analyzed</div>
+                    <div class="value">150 / 300</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Issues Found</div>
+                    <div class="value">12</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Patches Applied</div>
+                    <div class="value">8</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Build/Load Tests</div>
+                    <div class="value">25</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="issues-list">
+            <h2>Detected Issues</h2>
+            
+            <!-- Sample Issue 1 -->
+            <div class="issue">
+                <div class="issue-header" onclick="toggleDetails(this)">
+                    <span>[High] Null Pointer Exception in `UserService.java`</span>
+                </div>
+                <div class="issue-details">
+                    <h3>Description</h3>
+                    <p>A potential null pointer exception was found on line 42 in the `getUserProfile` method.</p>
+                    <h3>Generated Patch</h3>
+                    <pre><code>
+// Original Code
+String username = user.getName();
+
+// Patched Code
+if (user != null) {
+    String username = user.getName();
+}
+                    </code></pre>
+                    <h3>Test Status</h3>
+                    <p>Build: <span class="status-success">Success</span>, Load: <span class="status-failed">Failed</span></p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        function toggleDetails(element) {
+            const details = element.nextElementSibling;
+            if (details.style.display === "block") {
+                details.style.display = "none";
+            } else {
+                details.style.display = "block";
+            }
+        }
+    </script>
+</body>
+</html>

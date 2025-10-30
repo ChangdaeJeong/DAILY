@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        h1 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2em;
+            background-color: var(--card-bg-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1em 1.2em;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+            color: var(--header-color);
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: var(--border-color);
+            border-radius: 5px;
+        }
+        .progress {
+            width: 60%; /* Example percentage */
+            height: 20px;
+            background-color: var(--primary-color);
+            border-radius: 5px;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+        }
+        .button-container {
+            text-align: center;
+            margin: 2em 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>DAILY Analysis Dashboard</h1>
+    <div class="button-container">
+        <a href="/request" class="btn">Add New Analysis Request</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Progress</th>
+                <th>Current Tries</th>
+                <th>Status</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Sample Row: This will be dynamically generated later -->
+            <tr>
+                <td>Sample Project A</td>
+                <td>
+                    <div class="progress-bar">
+                        <div class="progress">60%</div>
+                    </div>
+                </td>
+                <td>3</td>
+                <td>Analyzing...</td>
+                <td><a href="/report?project_id=1">View Report</a></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Virtual environment
+venv/
+
+# Byte-code files
+__pycache__/
+*.pyc
+
+# OS generated files
+.DS_Store
+
+todo.txt
