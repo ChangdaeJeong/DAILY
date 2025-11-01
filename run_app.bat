@@ -17,5 +17,15 @@ call %VENV_DIR%\Scripts\activate
 echo Installing required packages...
 pip install -r requirements.txt
 
-echo Running Flask application...
+echo Checking for existing Flask application on port 5000 and terminating if found...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000') do (
+    if not "%%a"=="" (
+        echo Terminating process with PID %%a
+        taskkill /PID %%a /F
+    )
+)
+
+echo Running Flask application in a new window...
 python app.py
+echo Flask application started. This batch file will now terminate.
+exit
