@@ -91,10 +91,10 @@
             await sleep(100);
             animateIn(chars1);
 
-            await sleep(text1.length * 60 + 2000);
-            animateOut(chars1);
+            await sleep(text1.length * 60 + 1000);
+            //animateOut(chars1);
 
-            await sleep(text1.length * 60 + 500);
+            //await sleep(text1.length * 60 + 500);
             const chars2 = createSpans(text2);
             wordElement.style.letterSpacing = '0.2em';
             await sleep(100);
