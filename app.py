@@ -41,6 +41,7 @@ def inject_user():
                 cursor.close()
             if conn:
                 mysql_db.close_conn(conn)
+    session['user'] = user_data
     return dict(user=user_data)
 
 if __name__ == '__main__':

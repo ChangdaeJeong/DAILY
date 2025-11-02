@@ -62,17 +62,18 @@
         <div class="main-content">
             <h1>Create New Project</h1>
             <div class="form-container">
-                <form action="/submit_project" method="post">
+                <form id="create_project_form">
                     <div class="form-group">
                         <label for="project_name">Project Name</label>
                         <input type="text" id="project_name" name="project_name" placeholder="e.g., My Awesome Project" required>
+                        <span id="project_name_status"></span>
                     </div>
                     <div class="form-group">
                         <label for="project_path">Project Code Path</label>
                         <input type="text" id="project_path" name="project_path" placeholder="e.g., C:\Users\user\projects\my-project" required>
                     </div>
                     <div class="form-group">
-                        <label for="interface_script">Interface Script (Python)</label>
+                        <label for="interface_script">Interface Script (Python) <a href="{{ url_for('static', filename='py/daily_prj_if_v1.py') }}" target="_blank">download</a></label>
                         <textarea id="interface_script" name="interface_script" placeholder="Loading script content..." required></textarea>
                     </div>
                     <div class="button-container">
@@ -87,7 +88,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             const scriptTextarea = document.getElementById('interface_script');
             const scriptPath = "{{ url_for('static', filename='py/daily_prj_if_v1.py') }}";
+            const projectNameInput = document.getElementById('project_name');
+            const projectNameStatus = document.getElementById('project_name_status');
+            const createProjectForm = document.getElementById('create_project_form');
+            let debounceTimer;
 
+            // Load default script content
             fetch(scriptPath)
                 .then(response => {
                     if (!response.ok) {
@@ -102,6 +108,70 @@
                     console.error('Error loading script:', error);
                     scriptTextarea.value = "# Error: Could not load script content.";
                 });
+
+            // Project name debounce check
+            projectNameInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                projectNameStatus.textContent = 'Checking...';
+                projectNameStatus.style.color = 'gray';
+                debounceTimer = setTimeout(function() {
+                    const name = projectNameInput.value;
+                    if (name.length > 0) {
+                        fetch("{{ url_for('main.project.check_project_name') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ project_name: name })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.exists) {
+                                projectNameStatus.textContent = '❌ ' + data.msg;
+                                projectNameStatus.style.color = 'red';
+                            } else {
+                                projectNameStatus.textContent = '✅ ' + data.msg;
+                                projectNameStatus.style.color = 'green';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking project name:', error);
+                            projectNameStatus.textContent = 'Error checking name.';
+                            projectNameStatus.style.color = 'orange';
+                        });
+                    } else {
+                        projectNameStatus.textContent = '';
+                    }
+                }, 500);
+            });
+
+            // Form submission
+            createProjectForm.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
+                const formData = new FormData(createProjectForm);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch(createProjectForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams(data).toString()
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        window.location.href = result.redirect_url; // Redirect on success
+                    } else {
+                        alert('Error creating project: ' + result.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting form:', error);
+                    alert('An unexpected error occurred.');
+                });
+            });
         });
     </script>
 </body>

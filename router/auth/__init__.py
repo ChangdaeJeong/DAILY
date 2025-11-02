@@ -26,7 +26,7 @@ def login():
             # 일반 로그인 (bcrypt 암호화 비교)
             cursor.execute("SELECT * FROM daily_db_users WHERE uid = %s", (uid,))
             user = cursor.fetchone()
-
+            print(current_app.bcrypt.generate_password_hash(pwd))
             if user and (check_qb_id(uid, pwd) or current_app.bcrypt.check_password_hash(user['pwd'], pwd)):
                 session['user_uid'] = user['uid'] # 세션에 사용자 ID 저장
                 #flash('로그인 성공!', 'success')
