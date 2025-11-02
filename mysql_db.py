@@ -27,7 +27,7 @@ def create_db_pool():
     except Error as e:
         print(f"Error creating MySQL connection pool: {e}")
 
-def get_connection_from_pool():
+def get_conn():
     try:
         if db_pool:
             conn = db_pool.get_connection()
@@ -41,7 +41,7 @@ def get_connection_from_pool():
         print(f"Error getting connection from pool: {e}")
         return None
 
-def close_db_pool_connection(conn):
+def close_conn(conn):
     if conn:
         conn.close()
         print("Connection returned to pool.")

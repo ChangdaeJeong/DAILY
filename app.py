@@ -1,5 +1,5 @@
 from flask import Flask, render_template
-from flask import Flask, render_template
+from router import main_bp, request_bp, report_bp
 import mysql_db
 
 app = Flask(__name__)
@@ -8,27 +8,9 @@ app = Flask(__name__)
 def initialize_db_pool():
     mysql_db.create_db_pool()
 
-
-@app.route('/')
-def loading():
-    return render_template('loading.html')
-
-@app.route('/index')
-def index():
-    conn = mysql_db.get_connection_from_pool()
-    if conn:
-        # Perform database operations here
-        # For example: cursor = conn.cursor(); cursor.execute("SELECT 1"); result = cursor.fetchone(); print(result)
-        mysql_db.close_db_pool_connection(conn) # Return connection to the pool
-    return render_template('index.html')
-
-@app.route('/request')
-def request_page():
-    return render_template('request.html')
-
-@app.route('/report')
-def report():
-    return render_template('report.html')
+app.register_blueprint(main_bp)
+app.register_blueprint(request_bp, url_prefix='/request')
+app.register_blueprint(report_bp, url_prefix='/report')
 
 if __name__ == '__main__':
     app.run(debug=True)
