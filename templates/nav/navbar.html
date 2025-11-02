@@ -1,9 +1,15 @@
 <div class="navbar">
     <div class="navbar-left">
         <button class="menu-toggle">☰</button>
-        <span class="app-title">DAILY</span>
+        <a href="{{ url_for('main.index') }}" class="app-title">DAILY</a>
     </div>
     <div class="navbar-right">
+        {% if user.logged_in %}
+            <span class="navbar-username"> 🙎🏻‍♂️ {{ user.username }}</span>
+            <a href="{{ url_for('main.auth.logout') }}" class="settings-btn">Logout</a>
+        {% else %}
+            <a href="{{ url_for('main.auth.login') }}" class="settings-btn">Login</a>
+        {% endif %}
         <button class="settings-btn">⚙️ Settings</button>
     </div>
 </div>

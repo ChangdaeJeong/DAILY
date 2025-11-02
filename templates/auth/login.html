@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            margin: 0;
+        }
+        .login-container {
+            background-color: var(--card-bg-color);
+            padding: 2.5em;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-container h1 {
+            color: var(--header-color);
+            margin-bottom: 1.5em;
+            font-size: 2em;
+        }
+        .form-group {
+            margin-bottom: 1.5em;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5em;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
+            width: calc(100% - 2em);
+            padding: 1em;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            font-size: 1em;
+        }
+        .form-group input[type="text"]:focus,
+        .form-group input[type="password"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--highlight-color);
+            outline: none;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 1em;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .login-btn:hover {
+            background-color: #4F46E5;
+            transform: translateY(-2px);
+        }
+        .flash-message {
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .flash-message.success {
+            background-color: #D1FAE5; /* Green-ish background */
+            color: #065F46; /* Darker green text */
+            border: 1px solid #34D399;
+        }
+        .flash-message.danger {
+            background-color: #FEE2E2; /* Red-ish background */
+            color: #991B1B; /* Darker red text */
+            border: 1px solid #EF4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Login to DAILY</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('main.auth.login') }}">
+            <div class="form-group">
+                <label for="uid">User ID</label>
+                <input type="text" id="uid" name="uid" required>
+            </div>
+            <div class="form-group">
+                <label for="pwd">Password</label>
+                <input type="password" id="pwd" name="pwd" required>
+            </div>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uidInput = document.getElementById('uid');
+            const pwdInput = document.getElementById('pwd');
+            const flashMessages = document.querySelector('.flash-messages');
+
+            function hideFlashMessages() {
+                if (flashMessages) {
+                    flashMessages.style.display = 'none';
+                }
+            }
+
+            if (uidInput) {
+                uidInput.addEventListener('input', hideFlashMessages);
+            }
+            if (pwdInput) {
+                pwdInput.addEventListener('input', hideFlashMessages);
+            }
+        });
+    </script>
+</body>
+</html>
