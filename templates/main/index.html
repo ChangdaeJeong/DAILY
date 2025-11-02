@@ -15,7 +15,7 @@
             <div class="main-header">
                 <!-- Say hello user name, user data from current app -->
                 <h1>Welcome to Your Dashboard</h1>
-                <button class="create-project-btn">➕ Create New Project</button>
+                <a href="{{ url_for('main.project.create_project_page') }}" class="create-project-btn">➕ Create New Project</a>
             </div>
             <div class="feed-section">
                 <h2>Recent Activities</h2>

@@ -3,12 +3,12 @@ from . import main_bp
 from flask import current_app
 import mysql_db
 from .auth import auth_bp
-from .request import request_bp
+from .project import project_bp
 from .report import report_bp
 
 # 다른 Blueprint들을 main_bp에 등록
 main_bp.register_blueprint(auth_bp, url_prefix='/auth')
-main_bp.register_blueprint(request_bp, url_prefix='/request')
+main_bp.register_blueprint(project_bp, url_prefix='/project')
 main_bp.register_blueprint(report_bp, url_prefix='/report')
 
 @main_bp.before_app_request
