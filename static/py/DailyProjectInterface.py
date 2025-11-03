@@ -2,7 +2,7 @@
 # 인터페이스는 항상 소스코드 루트에서 실행됩니다.
 import os
 
-class Daily_Project_Interface:
+class DailyProjectInterface:
     def __init__(self):
         self.version = "v1"
         pass

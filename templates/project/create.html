@@ -73,7 +73,7 @@
                         <input type="text" id="project_path" name="project_path" placeholder="e.g., C:\Users\user\projects\my-project" required>
                     </div>
                     <div class="form-group">
-                        <label for="interface_script">Interface Script (Python) <a href="{{ url_for('static', filename='py/daily_prj_if_v1.py') }}" target="_blank">download</a></label>
+                        <label for="interface_script">Interface Script (Python) <a href="{{ url_for('static', filename='py/DailyProjectInterface.py') }}" target="_blank">download</a></label>
                         <textarea id="interface_script" name="interface_script" placeholder="Loading script content..." required></textarea>
                     </div>
                     <div class="button-container">
@@ -87,7 +87,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const scriptTextarea = document.getElementById('interface_script');
-            const scriptPath = "{{ url_for('static', filename='py/daily_prj_if_v1.py') }}";
+            const scriptPath = "{{ url_for('static', filename='py/DailyProjectInterface.py') }}";
             const projectNameInput = document.getElementById('project_name');
             const projectNameStatus = document.getElementById('project_name_status');
             const createProjectForm = document.getElementById('create_project_form');
