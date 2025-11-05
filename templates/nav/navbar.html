@@ -1,4 +1,12 @@
 <div class="navbar">
+    <div class="navbar-left">
+        <button class="menu-toggle">☰</button>
+        <a href="{{ url_for('main.index') }}" class="app-title">DAILY</a>
+    </div>
+    <div class="navbar-right">
+        <button class="settings-btn" id="user-menu-toggle"> 🙎🏻‍♂️ {{ user.username }} </button>
+        <button class="settings-btn">⚙️</button>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const menuToggle = document.querySelector('.menu-toggle');
@@ -9,27 +17,15 @@
                     sidebar.classList.toggle('hidden');
                 });
             }
+            const userMenuToggle = document.getElementById('user-menu-toggle');
+            if (userMenuToggle) {
+                userMenuToggle.style.cursor = 'pointer'; // 클릭 가능하도록 커서 변경
+                userMenuToggle.addEventListener('click', () => {
+                    if (confirm('로그아웃 하시겠습니까?')) {
+                        window.location.href = "{{ url_for('main.auth.logout') }}";
+                    }
+                });
+            }
         });
     </script>
-    <div class="navbar-left">
-        <button class="menu-toggle">☰</button>
-        <a href="{{ url_for('main.index') }}" class="app-title">DAILY</a>
-    </div>
-    <div class="navbar-right">
-        <button class="settings-btn" id="user-menu-toggle"> 🙎🏻‍♂️ {{ user.username }} </button>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const userMenuToggle = document.getElementById('user-menu-toggle');
-                if (userMenuToggle) {
-                    userMenuToggle.style.cursor = 'pointer'; // 클릭 가능하도록 커서 변경
-                    userMenuToggle.addEventListener('click', () => {
-                        if (confirm('로그아웃 하시겠습니까?')) {
-                            window.location.href = "{{ url_for('main.auth.logout') }}";
-                        }
-                    });
-                }
-            });
-        </script>
-        <button class="settings-btn">⚙️</button>
-    </div>
 </div>
