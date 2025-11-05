@@ -1,8 +1,7 @@
 import os
 import sys
-import shutil # shutil 모듈 추가
 from flask import current_app, render_template, Blueprint, request, redirect, url_for, session, jsonify
-import mysql_db
+import lib.mysql_db as mysql_db
 
 # run_if.py를 임포트하기 위해 app.py가 있는 디렉토리를 sys.path에 추가
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))

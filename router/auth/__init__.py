@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-import mysql_db
+import lib.mysql_db as mysql_db
 
 auth_bp = Blueprint('auth', __name__)
 

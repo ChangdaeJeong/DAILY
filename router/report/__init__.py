@@ -1,5 +1,4 @@
 from flask import render_template, Blueprint
-import mysql_db
 
 report_bp = Blueprint('report', __name__)
 

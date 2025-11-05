@@ -1,25 +1,19 @@
-from flask import Flask, render_template, flash, redirect, url_for, session
-import mysql_db
+from flask import Flask
 from router import main_bp
-from flask_bcrypt import Bcrypt # Flask-Bcrypt 임포트
-from lib.inject import check_login_status, inject_sidebar_data, inject_user # inject 함수 임포트
+from flask_bcrypt import Bcrypt
+import lib.inject as inject
+import lib.mysql_db as mysql_db
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here' # Flash 메시지를 위해 secret_key 설정
-app.bcrypt = Bcrypt(app) # Bcrypt 초기화 및 app 인스턴스에 직접 할당
+app.secret_key = 'D.A.I.L.Y_Secret_Key_v1.0'
 
-@app.before_first_request
-def initialize_db_pool():
-    mysql_db.create_db_pool()
+app.before_first_request(mysql_db.create_db_pool)
+app.before_first_request(lambda: setattr(app, 'bcrypt', Bcrypt(app)))
+app.before_request(inject.check_login_status)
+
+app.context_processor(inject.sidebar_data)
+app.context_processor(inject.user)
 
 app.register_blueprint(main_bp)
-
-# 애플리케이션 전역에 before_request 핸들러 등록
-app.before_request(check_login_status)
-app.context_processor(inject_sidebar_data)
-
-# context_processor 등록
-app.context_processor(inject_user)
-
 if __name__ == '__main__':
     app.run(debug=True)

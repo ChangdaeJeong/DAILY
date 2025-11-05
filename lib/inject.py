@@ -1,5 +1,5 @@
-from flask import request, session, redirect, url_for, jsonify, g, current_app
-import mysql_db # mysql_db 임포트
+from flask import request, session, redirect, url_for, jsonify, current_app
+import lib.mysql_db as mysql_db # mysql_db 임포트
 from router.project import categorized_projects_data
 from lib.decorator import non_static_request
 
@@ -18,7 +18,7 @@ def check_login_status():
         return jsonify(success=False, msg='로그인되지 않았습니다.'), 401
 
 @non_static_request
-def inject_sidebar_data():
+def sidebar_data():
     sidebar_projects_data = {}
     if(session.get('user_uid')):
         logged_in_user_id = session.get('user', {}).get('user', {}).get('id')
@@ -26,7 +26,7 @@ def inject_sidebar_data():
 
     return dict(sidebar_projects_data=sidebar_projects_data)
 
-def inject_user():
+def user():
     user_data = {
         'username': session['user_uid'] if 'user_uid' in session else '',
         'user': {},
