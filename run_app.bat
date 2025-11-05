@@ -26,6 +26,6 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000') do (
 )
 
 echo Running Flask application in a new window...
-python app.py
+%VENV_DIR%\Scripts\python app.py
 echo Flask application started. This batch file will now terminate.
 exit

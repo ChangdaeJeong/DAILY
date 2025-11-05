@@ -1,0 +1,180 @@
+<div id="fileSelectionModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" id="fileSelectionCloseButton">&times;</span>
+        <h2>Select Files to Analyze</h2>
+        <div id="file-selection-area">
+            <ul id="file-list-modal"></ul>
+            <button class="btn" id="save_selected_files_btn">Save Selected Files</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const projectId = "{{ project.id | tojson }}";
+
+        const fileSelectionModal = document.getElementById('fileSelectionModal');
+        const fileSelectionCloseButton = document.getElementById('fileSelectionCloseButton');
+        const fileListModal = document.getElementById('file-list-modal');
+        const saveSelectedFilesBtn = document.getElementById('save_selected_files_btn');
+
+        function showFileSelectionModal() {
+            fileSelectionModal.style.display = 'flex';
+        }
+
+        function hideFileSelectionModal() {
+            fileSelectionModal.style.display = 'none';
+        }
+
+        fileSelectionCloseButton.addEventListener('click', hideFileSelectionModal);
+
+        window.addEventListener('click', function(event) {
+            if (event.target == fileSelectionModal) {
+                hideFileSelectionModal();
+            }
+        });
+
+        // Custom event listener for showing file selection modal
+        window.addEventListener('showFileSelectionModal', function(event) {
+            displayFilesForSelection(event.detail.files);
+        });
+
+        function buildFileTree(files) {
+            const tree = {};
+            files.forEach(file => {
+                const parts = file.split(/[\\/]/);
+                let currentLevel = tree;
+                parts.forEach((part, index) => {
+                    if (index === parts.length - 1) { // 마지막 부분은 파일 또는 빈 폴더
+                        if (file.indexOf('.') !== -1) { // 파일인 경우
+                            currentLevel[part] = file; // 파일 경로 문자열 저장
+                        } else { // 마지막 부분인데 확장자가 없으면 폴더로 간주
+                            if (!currentLevel[part]) { // 이미 존재하지 않으면 빈 객체로 초기화
+                                currentLevel[part] = {};
+                            }
+                        }
+                    } else { // 중간 폴더
+                        if (typeof currentLevel[part] === 'string') { // 이미 파일로 저장되어 있으면 객체로 변경
+                            currentLevel[part] = {};
+                        }
+                        if (!currentLevel[part]) { // 존재하지 않으면 빈 객체로 초기화
+                            currentLevel[part] = {};
+                        }
+                        currentLevel = currentLevel[part];
+                    }
+                });
+            });
+            return tree;
+        }
+
+        function renderFileTree(node, parentUl) {
+            for (const key in node) {
+                const value = node[key];
+                const li = document.createElement('li');
+
+                if (typeof value === 'string') { // 파일인 경우
+                    li.className = 'file-tree-item file-tree-file-item'; // 파일에 대한 클래스 추가
+                    li.innerHTML = `<input type="checkbox" value="${value}"> ${key}`;
+                    parentUl.appendChild(li); // 파일을 부모 ul에 직접 추가
+                } else { // 폴더인 경우
+                    li.className = 'file-tree-item file-tree-folder'; // 폴더에 대한 클래스 추가
+                    
+                    const folderHeader = document.createElement('div');
+                    folderHeader.className = 'file-tree-folder-header';
+
+                    const folderCheckbox = document.createElement('input');
+                    folderCheckbox.type = 'checkbox';
+                    folderCheckbox.dataset.folderName = key; // 데이터 속성으로 폴더 이름 저장
+                    folderHeader.appendChild(folderCheckbox);
+
+                    const folderToggle = document.createElement('span');
+                    folderToggle.className = 'folder-toggle';
+                    folderHeader.appendChild(folderToggle);
+
+                    const folderName = document.createElement('span');
+                    folderName.className = 'folder-name';
+                    folderName.textContent = key;
+                    folderHeader.appendChild(folderName);
+
+                    li.appendChild(folderHeader);
+
+                    const nestedUl = document.createElement('ul');
+                    nestedUl.className = 'nested';
+                    li.appendChild(nestedUl);
+
+                    folderToggle.addEventListener('click', function() {
+                        this.classList.toggle('folder-toggle-down');
+                        nestedUl.classList.toggle('active');
+                    });
+
+                    folderCheckbox.addEventListener('change', function() {
+                        const isChecked = this.checked;
+                        // 하위의 모든 체크박스 (파일 및 폴더) 선택/해제
+                        nestedUl.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                            checkbox.checked = isChecked;
+                        });
+                    });
+
+                    renderFileTree(value, nestedUl); // 하위 항목을 nestedUl에 렌더링
+                    parentUl.appendChild(li); // 폴더를 부모 ul에 직접 추가
+                }
+            }
+        }
+
+        function displayFilesForSelection(files) {
+            fileListModal.innerHTML = '';
+            const fileTree = buildFileTree(files);
+            renderFileTree(fileTree, fileListModal);
+            showFileSelectionModal(); // 파일 선택 모달 표시
+        }
+
+        saveSelectedFilesBtn.addEventListener('click', async function() {
+            const selectedFiles = Array.from(fileListModal.querySelectorAll('input[type="checkbox"]:checked'))
+                                        .map(checkbox => checkbox.value)
+                                        .filter(value => value.indexOf('.') !== -1); // 파일만 선택
+
+            if (selectedFiles.length === 0) {
+                alert('분석할 파일을 하나 이상 선택해주세요.');
+                return;
+            }
+
+            hideFileSelectionModal(); // 파일 선택 모달 숨기기
+            // Custom event to trigger init modal for progress log
+            const event = new CustomEvent('showInitModalForProgress');
+            window.dispatchEvent(event);
+
+            // This part needs to be handled by init_modal.html's script
+            // const progressBar = document.getElementById('progressBar');
+            // progressBar.style.width = '100%';
+            // progressBar.textContent = `100% - ${steps[steps.length - 1]} 완료!`; // 마지막 스텝 메시지 사용
+
+            try {
+                const response = await fetch(`/project/init/step`, { // Step 7 API call
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ project_id: projectId, step: 6, selected_files: selectedFiles })
+                });
+                const data = await response.json();
+
+                // This part needs to be handled by init_modal.html's script
+                // progressLog.innerHTML += `<p>${data.msg}</p>`;
+
+                if (data.success) {
+                    alert('파일 전송 및 초기화 완료!');
+                    // hideInitModal(); // This needs to be handled by init_modal.html's script
+                    window.location.reload();
+                } else {
+                    alert('파일 전송 실패: ' + data.msg);
+                    // hideInitModal(); // This needs to be handled by init_modal.html's script
+                }
+            } catch (error) {
+                console.error('Error sending selected files:', error);
+                // progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`; // This needs to be handled by init_modal.html's script
+                alert('파일 전송 중 예상치 못한 오류가 발생했습니다.');
+                // hideInitModal(); // This needs to be handled by init_modal.html's script
+            }
+        });
+    });
+</script>

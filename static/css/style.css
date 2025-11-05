@@ -261,3 +261,143 @@ input[type="text"]:focus, textarea:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px var(--highlight-color);
 }
+
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    /* display: flex; */ /* 초기 로드 시 모달이 보이지 않도록 제거 */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--card-bg-color);
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more specific */
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#progress-log {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-top: 1em;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+}
+
+.progress-container {
+    width: 100%;
+    background-color: var(--input-bg-color);
+    border-radius: 5px;
+    margin-bottom: 1em;
+    overflow: hidden; /* Ensure progress-bar doesn't overflow */
+}
+
+.progress-bar {
+    width: 0%;
+    height: 25px;
+    background-color: var(--primary-color);
+    text-align: center;
+    line-height: 25px;
+    color: white;
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out;
+    font-weight: bold;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden; /* Hide overflowing text */
+    text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+}
+
+#file-list-modal {
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-top: 1em;
+    background-color: var(--input-bg-color);
+}
+
+#file-list-modal li {
+    margin-bottom: 0.5em;
+}
+
+/* File tree styles */
+.nested {
+    list-style: none;
+    padding-left: 1em;
+    display: none; /* Hidden by default */
+}
+
+.file-tree-item {
+    margin-bottom: 0.3em;
+}
+
+.file-tree-item input[type="checkbox"] {
+    margin-right: 0.5em;
+}
+
+.file-tree-folder-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.3em; /* 폴더 헤더와 하위 항목 간 간격 */
+}
+
+.file-tree-file-item {
+    display: flex; /* 체크박스와 파일 이름 정렬 */
+    align-items: center;
+}
+
+.file-tree-folder > .nested {
+    padding-left: 1.5em; /* 폴더 하위 항목 들여쓰기 */
+}
+
+.nested.active {
+    display: block;
+}
+
+.folder-toggle {
+    cursor: pointer;
+    margin-right: 0.5em;
+}
+
+.folder-name {
+    font-weight: bold;
+}
+
+.file-item {
+    margin-left: 1.5em; /* Indent files */
+}

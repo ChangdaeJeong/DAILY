@@ -1,0 +1,151 @@
+<div id="initModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button" id="initModalCloseButton">&times;</span>
+        <h2>Project Initialization Progress</h2>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+        <div id="progress-log"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const initProjectBtn = document.getElementById('init_project_btn');
+        const projectId = "{{ project.id | tojson }}";
+
+        const initModal = document.getElementById('initModal');
+        const initModalCloseButton = document.getElementById('initModalCloseButton');
+        const progressLog = document.getElementById('progress-log');
+        const progressBar = document.getElementById('progressBar');
+        
+        let currentStep = 0;
+        const steps = [
+            "Workspace 초기화 중...",
+            "Interface 설치 중...",
+            "Project Init 중...",
+            "Project Build 중...",
+            "Project Run 중...",
+            "프로젝트 하위 파일 검색 중..."
+        ];
+
+        function showInitModal() {
+            initModal.style.display = 'flex';
+            progressLog.innerHTML = '';
+            currentStep = 0;
+        }
+
+        function hideInitModal() {
+            initModal.style.display = 'none';
+        }
+
+        initModalCloseButton.addEventListener('click', hideInitModal);
+
+        window.addEventListener('click', function(event) {
+            if (event.target == initModal) {
+                hideInitModal();
+            }
+        });
+
+        async function runInitializationStep(step) {
+            const progressPercentage = Math.round(((step + 1) / steps.length) * 100);
+            progressBar.style.width = `${progressPercentage}%`;
+            progressBar.textContent = `${progressPercentage}% - ${steps[step]}`;
+
+            try {
+                const response = await fetch(`/project/init/step`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ project_id: projectId, step: step })
+                });
+                const data = await response.json();
+
+                progressLog.innerHTML += `<p>${data.msg}</p>`;
+
+                if (data.success) {
+                    if (data.next_step !== undefined) {
+                        currentStep = data.next_step;
+                        if (currentStep < steps.length) {
+                            setTimeout(() => runInitializationStep(currentStep), 1000);
+                        } else {
+                            progressBar.style.width = '100%';
+                            progressBar.textContent = '100% - 프로젝트 초기화 완료!';
+                            if (data.files) {
+                                // hideInitModal(); // 초기화 모달 숨기기
+                                // displayFilesForSelection(data.files); // 파일 선택 모달 표시 (이 부분은 file_selection_modal.html에서 처리)
+                                // Custom event to trigger file selection modal
+                                const event = new CustomEvent('showFileSelectionModal', { detail: { files: data.files } });
+                                window.dispatchEvent(event);
+                            } else if (data.redirect_url) {
+                                setTimeout(() => window.location.href = data.redirect_url, 1000);
+                            } else {
+                                alert('프로젝트 초기화 완료!');
+                                hideInitModal();
+                                setTimeout(() => window.location.reload(), 1000);
+                            }
+                        }
+                    } else if (data.redirect_url) {
+                        progressBar.style.width = '100%';
+                        progressBar.textContent = '100% - 프로젝트 초기화 완료!';
+                        setTimeout(() => window.location.href = data.redirect_url, 1000);
+                    } else {
+                        alert('프로젝트 초기화 완료!');
+                        hideInitModal();
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                } else {
+                    alert('초기화 실패: ' + data.msg);
+                    hideInitModal();
+                }
+            } catch (error) {
+                console.error('Error during initialization step:', error);
+                progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`;
+                alert('프로젝트 초기화 중 예상치 못한 오류가 발생했습니다.');
+                hideInitModal();
+            }
+        }
+
+        if (initProjectBtn) {
+            initProjectBtn.addEventListener('click', async function() {
+                const ifScriptContent = document.getElementById('if_script_textarea').value;
+
+                if (confirm('프로젝트를 초기화하시겠습니까? 이 작업은 인터페이스 스크립트를 저장하고 프로젝트 디렉토리를 생성하며 스크립트를 실행합니다.')) {
+                    showInitModal(); // Initialize 버튼 클릭 시 초기화 모달 띄우기
+
+                    try {
+                        // 1. if_script 업데이트
+                        progressBar.style.width = '0%';
+                        progressBar.textContent = '0% - 인터페이스 스크립트 저장 중...';
+                        progressLog.innerHTML += `<p><strong>인터페이스 스크립트 저장 중...</strong></p>`;
+                        const updateResponse = await fetch(`/project/update/${projectId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ if_script: ifScriptContent })
+                        });
+                        const updateData = await updateResponse.json();
+
+                        progressLog.innerHTML += `<p>${updateData.msg}</p>`;
+
+                        if (!updateData.success) {
+                            alert('인터페이스 스크립트 저장 실패: ' + updateData.msg);
+                            hideInitModal();
+                            return;
+                        }
+                        
+                        // Start step-by-step initialization
+                        runInitializationStep(currentStep);
+
+                    } catch (error) {
+                        console.error('Error during project initialization setup:', error);
+                        alert('프로젝트 초기화 설정 중 예상치 못한 오류가 발생했습니다.');
+                        hideInitModal();
+                    }
+                }
+            });
+        }
+    });
+</script>
