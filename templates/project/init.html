@@ -136,10 +136,10 @@
                 <div class="action-buttons">
                     {% if project.state == 'new' %}
                         <button class="btn" id="init_project_btn">Initialize Project</button>
-                        <button class="btn btn-danger" id="delete_project_btn">Delete Project</button>
+                        <button class="btn btn-danger" id="project_delete_btn">Delete Project</button>
                     {% elif project.state == 'initialized' %}
                         <button class="btn">Start Analysis</button>
-                        <button class="btn btn-danger" id="delete_project_btn">Delete Project</button>
+                        <button class="btn btn-danger" id="project_delete_btn">Delete Project</button>
                     {% elif project.state == 'deleted' %}
                         <button class="btn" disabled>Initialize Project</button>
                         <button class="btn btn-danger" disabled>Delete Project</button>
@@ -181,7 +181,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const deleteProjectBtn = document.getElementById('delete_project_btn');
+            const deleteProjectBtn = document.getElementById('project_delete_btn');
             const projectId = "{{ project.id | tojson }}"; // project.id는 정수이므로 문자열로 변환
 
             // Custom event listener for showing init modal for progress

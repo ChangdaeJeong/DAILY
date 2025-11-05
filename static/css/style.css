@@ -126,12 +126,24 @@ body {
     min-width: 45px;
 }
 
+.progress-tag.new {
+    background-color: #60A5FA; /* Blue for New */
+}
+
+.progress-tag.init {
+    background-color: #F97316; /* Orange for Init */
+}
+
+.progress-tag.doing {
+    background-color: #22C55E; /* Green for Doing */
+}
+
 .progress-tag.done {
     background-color: var(--placeholder-color); /* Gray for Done */
 }
 
-.progress-tag.in-progress {
-    background-color: var(--secondary-color); /* Secondary color for In Progress */
+.progress-tag.delete {
+    background-color: #EF4444; /* Red for Delete */
 }
 
 /* Main Content Area */

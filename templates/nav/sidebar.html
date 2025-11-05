@@ -1,23 +1,19 @@
 <div class="sidebar">
     <h2>Projects</h2>
     <ul class="project-list">
+        {% for project in projects %}
         <li>
-            <a href="#">
-                <span>Project Alpha</span>
-                <span class="progress-tag done">Done</span>
+            <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
+                <span>{{ project.name }}</span>
+                {% if project.state == 'doing' %}
+                <span class="progress-tag doing">50%</span> {# 예시로 50% 표시 #}
+                {% else %}
+                <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
+                {% endif %}
             </a>
         </li>
-        <li>
-            <a href="#">
-                <span>Project Beta</span>
-                <span class="progress-tag in-progress">62%</span>
-            </a>
-        </li>
-        <li>
-            <a href="#">
-                <span>Project Gamma</span>
-                <span class="progress-tag in-progress">30%</span>
-            </a>
-        </li>
+        {% else %}
+        <li>No projects found.</li>
+        {% endfor %}
     </ul>
 </div>

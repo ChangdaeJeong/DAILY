@@ -11,7 +11,7 @@ import run_if
 project_bp = Blueprint('project', __name__)
 
 @project_bp.route('/create', methods=['GET', 'POST'])
-def create_project_page():
+def create():
     if request.method == 'POST':
         project_name = request.form['project_name']
         project_path = request.form['project_path']
@@ -33,7 +33,7 @@ def create_project_page():
             )
             conn.commit()
             project_id = cursor.lastrowid
-            return jsonify(success=True, redirect_url=url_for('main.project.view_project', project_id=project_id))
+            return jsonify(success=True, redirect_url=url_for('main.project.project_detail_page', project_id=project_id))
         except Exception as e:
             return jsonify(success=False, msg=f"프로젝트 생성 중 오류 발생: {e}"), 500
         finally:
@@ -44,7 +44,7 @@ def create_project_page():
     return render_template('project/create.html')
 
 @project_bp.route('/delete/<int:project_id>', methods=['POST'])
-def delete_project(project_id):
+def delete(project_id):
     conn = None
     cursor = None
     user_data = session.get('user', {})
@@ -83,7 +83,7 @@ def delete_project(project_id):
             mysql_db.close_conn(conn)
 
 @project_bp.route('/update/<int:project_id>', methods=['POST'])
-def update_if_script(project_id):
+def update(project_id):
     conn = None
     cursor = None
     user_data = session.get('user', {})
@@ -125,7 +125,7 @@ def update_if_script(project_id):
             mysql_db.close_conn(conn)
 
 @project_bp.route('/check_project_name', methods=['POST'])
-def check_project_name():
+def check_name():
     project_name = request.json.get('project_name')
     if not project_name:
         return jsonify(exists=False, msg="프로젝트 이름을 입력해주세요.")
@@ -149,8 +149,8 @@ def check_project_name():
         if conn:
             mysql_db.close_conn(conn)
 
-@project_bp.route('/<int:project_id>')
-def view_project(project_id):
+@project_bp.route('/detail/<int:project_id>')
+def detail_page(project_id):
     conn = None
     cursor = None
     project = None
@@ -173,7 +173,7 @@ def view_project(project_id):
 
         if project['state'] == 'new':
             # state가 'new'이고, 로그인된 사용자가 프로젝트 소유자이면 init.html 렌더링
-            return redirect(url_for('main.project.init_project_page', project_id=project_id))
+            return redirect(url_for('main.project.init_page', project_id=project_id))
         return render_template('project/detail.html', project=project, files=files) # detail.html은 나중에 구현
     except Exception as e:
         print(f"Error fetching project details: {e}")
@@ -185,7 +185,7 @@ def view_project(project_id):
             mysql_db.close_conn(conn)
 
 @project_bp.route('/init/<int:project_id>', methods=['GET'])
-def init_project_page(project_id):
+def init_page(project_id):
     conn = None
     cursor = None
     user_data = session.get('user', {})
@@ -207,7 +207,7 @@ def init_project_page(project_id):
         if project['state'] == 'new':
             return render_template('project/init.html', project=project)
         else:
-            return redirect(url_for('main.project.view_project', project_id=project_id))
+            return redirect(url_for('main.project.project_detail_page', project_id=project_id))
     except Exception as e:
         print(f"Error fetching project details: {e}")
         return "Error loading project details", 500
@@ -218,7 +218,7 @@ def init_project_page(project_id):
             mysql_db.close_conn(conn)
 
 @project_bp.route('/init/step', methods=['POST'])
-def initialize_project():
+def initialize():
     conn = None
     cursor = None
     user_data = session.get('user', {})
@@ -299,9 +299,9 @@ def initialize_project():
             # selected_files = request.json.get('selected_files', []) # 현재 단계에서는 사용하지 않음
             try:
                 # 모든 스텝 완료 후 프로젝트 상태를 'init'으로 변경
-                cursor.execute("UPDATE daily_db_projects SET state = 'new' WHERE id = %s", (project_id,))
+                cursor.execute("UPDATE daily_db_projects SET state = 'init' WHERE id = %s", (project_id,))
                 conn.commit()
-                return jsonify(success=True, msg="선택된 파일 전송 및 프로젝트 초기화 완료!")#, redirect_url=url_for('main.project.view_project', project_id=project_id))
+                return jsonify(success=True, msg="선택된 파일 전송 및 프로젝트 초기화 완료!")#, redirect_url=url_for('main.project.project_detail_page', project_id=project_id))
             except Exception as e:
                 return jsonify(success=False, msg=f"프로젝트 상태 업데이트 중 오류 발생: {e}")
         else:
