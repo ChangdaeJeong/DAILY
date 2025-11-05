@@ -78,8 +78,23 @@ body {
 .sidebar h2 {
     margin-top: 0;
     color: var(--header-color);
-    font-size: 1.3em;
+    font-size: 1.1em; /* 폰트 크기 감소 */
     margin-bottom: 1em;
+    display: flex; /* 아이템 정렬을 위해 flexbox 사용 */
+    align-items: center; /* 세로 중앙 정렬 */
+    justify-content: space-between; /* 아이템들을 양 끝으로 분산 */
+    cursor: pointer; /* 클릭 가능함을 나타내기 위해 커서 변경 */
+}
+
+.sidebar h2 .project-count {
+    font-size: 0.8em; /* 프로젝트 개수 폰트 크기 조정 */
+    color: var(--placeholder-color); /* 색상 조정 */
+    margin-left: 0.5em; /* 타이틀과의 간격 */
+}
+
+.sidebar h2 .toggle-icon {
+    font-size: 0.8em; /* 토글 아이콘 폰트 크기 조정 */
+    margin-left: 0.5em; /* 텍스트와의 간격 */
 }
 
 .project-list {
@@ -350,6 +365,15 @@ input[type="text"]:focus, textarea:focus {
     white-space: nowrap; /* Prevent text wrapping */
     overflow: hidden; /* Hide overflowing text */
     text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+}
+
+#load-more-projects {
+    display: block; /* 버튼을 블록 레벨 요소로 만들어 전체 너비 사용 */
+    width: 100%; /* 부모 요소에 맞게 너비 조정 */
+    margin-top: 1.5em; /* 위쪽 여백 추가 */
+    padding: 0.8em 1.5em; /* 패딩 조정 */
+    font-size: 0.9em; /* 폰트 크기 조정 */
+    text-align: center; /* 텍스트 중앙 정렬 */
 }
 
 #file-list-modal {

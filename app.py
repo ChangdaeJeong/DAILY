@@ -44,29 +44,5 @@ def inject_user():
     session['user'] = user_data
     return dict(user=user_data)
 
-@app.context_processor
-def inject_projects():
-    projects = []
-    user_uid = session.get('user_uid')
-    if user_uid:
-        conn = None
-        cursor = None
-        user_data = session.get('user', {})
-        logged_in_user_id = user_data.get('user', {}).get('id')
-        try:
-            conn = mysql_db.get_conn()
-            cursor = conn.cursor(dictionary=True)
-            # user_id가 같은 최신 project 10개를 id desc 순으로 가져옵니다.
-            cursor.execute("SELECT id, name, state FROM daily_db_projects WHERE user_id = %s ORDER BY id DESC LIMIT 10", (logged_in_user_id,))
-            projects = cursor.fetchall()
-        except Exception as e:
-            print(f"Error fetching projects for context processor: {e}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                mysql_db.close_conn(conn)
-    return dict(projects=projects)
-
 if __name__ == '__main__':
     app.run(debug=True)

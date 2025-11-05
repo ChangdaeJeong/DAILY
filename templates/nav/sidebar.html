@@ -1,19 +1,165 @@
 <div class="sidebar">
-    <h2>Projects</h2>
-    <ul class="project-list">
-        {% for project in projects %}
-        <li>
-            <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
-                <span>{{ project.name }}</span>
-                {% if project.state == 'doing' %}
-                <span class="progress-tag doing">50%</span> {# 예시로 50% 표시 #}
-                {% else %}
-                <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
-                {% endif %}
-            </a>
-        </li>
-        {% else %}
-        <li>No projects found.</li>
-        {% endfor %}
-    </ul>
+    <div class="project-category">
+        <h2 class="category-title" data-category="doing">Doing Projects <span class="project-count">({{ sidebar_projects_data.total_doing_projects if sidebar_projects_data else 0 }})</span> <span class="toggle-icon">▼</span></h2>
+        <ul class="project-list doing-projects">
+            {% for project in sidebar_projects_data.doing_projects %}
+            <li>
+                <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
+                    <span>{{ project.name }}</span>
+                    {% if project.state == 'doing' %}
+                    <span class="progress-tag doing">{{ project.progress }}%</span>
+                    {% else %}
+                    <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% else %}
+            <li>No doing projects found.</li>
+            {% endfor %}
+        </ul>
+        <button class="load-more-btn btn" data-category="doing" data-offset="{{ sidebar_projects_data.doing_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_doing %}style="display: none;"{% endif %}>더보기</button>
+    </div>
+
+    <div class="project-category">
+        <h2 class="category-title" data-category="init">Initializing Projects <span class="project-count">({{ sidebar_projects_data.total_init_projects if sidebar_projects_data else 0 }})</span> <span class="toggle-icon">▼</span></h2>
+        <ul class="project-list init-projects">
+            {% for project in sidebar_projects_data.init_projects %}
+            <li>
+                <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
+                    <span>{{ project.name }}</span>
+                    {% if project.state == 'doing' %}
+                    <span class="progress-tag doing">{{ project.progress }}%</span>
+                    {% else %}
+                    <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% else %}
+            <li>No initializing projects found.</li>
+            {% endfor %}
+        </ul>
+        <button class="load-more-btn btn" data-category="init" data-offset="{{ sidebar_projects_data.init_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_init %}style="display: none;"{% endif %}>더보기</button>
+    </div>
+
+    <div class="project-category collapsed">
+        <h2 class="category-title" data-category="done">Completed Projects <span class="project-count">({{ sidebar_projects_data.total_done_projects if sidebar_projects_data else 0 }})</span> <span class="toggle-icon">▶</span></h2>
+        <ul class="project-list done-projects" style="display: none;">
+            {% for project in sidebar_projects_data.done_projects %}
+            <li>
+                <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
+                    <span>{{ project.name }}</span>
+                    {% if project.state == 'doing' %}
+                    <span class="progress-tag doing">{{ project.progress }}%</span>
+                    {% else %}
+                    <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% else %}
+            <li>No completed projects found.</li>
+            {% endfor %}
+        </ul>
+        <button class="load-more-btn btn" data-category="done" data-offset="{{ sidebar_projects_data.done_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_done %}style="display: none;"{% endif %}>더보기</button>
+    </div>
+
+    <div class="project-category collapsed">
+        <h2 class="category-title" data-category="delete">Deleted Projects <span class="project-count">({{ sidebar_projects_data.total_delete_projects if sidebar_projects_data else 0 }})</span> <span class="toggle-icon">▶</span></h2>
+        <ul class="project-list delete-projects" style="display: none;">
+            {% for project in sidebar_projects_data.delete_projects %}
+            <li>
+                <a href="{{ url_for('main.project.detail_page', project_id=project.id) }}">
+                    <span>{{ project.name }}</span>
+                    {% if project.state == 'doing' %}
+                    <span class="progress-tag doing">{{ project.progress }}%</span>
+                    {% else %}
+                    <span class="progress-tag {{ project.state }}">{{ project.state }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            {% else %}
+            <li>No deleted projects found.</li>
+            {% endfor %}
+        </ul>
+        <button class="load-more-btn btn" data-category="delete" data-offset="{{ sidebar_projects_data.delete_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_delete %}style="display: none;"{% endif %}>더보기</button>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categories = ['doing', 'init', 'done', 'delete'];
+
+        function createProjectListItem(project) {
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `/project/${project.id}`; // 프로젝트 상세 페이지 URL
+            link.innerHTML = `
+                <span>${project.name}</span>
+                ${project.state === 'doing' ?
+                    `<span class="progress-tag doing">${project.progress}%</span>` :
+                    `<span class="progress-tag ${project.state}">${project.state}</span>`}
+            `;
+            listItem.appendChild(link);
+            return listItem;
+        }
+
+        function loadProjects(category, offset) {
+            fetch(`/get_categorized_projects?offset_${category}=${offset}`)
+                .then(response => response.json())
+                .then(data => {
+                    const projectList = document.querySelector(`.${category}-projects`);
+                    const loadMoreButton = document.querySelector(`.load-more-btn[data-category="${category}"]`);
+                    const projectCountSpan = document.querySelector(`.category-title[data-category="${category}"] .project-count`);
+
+                    data[`${category}_projects`].forEach(project => {
+                        projectList.appendChild(createProjectListItem(project));
+                    });
+
+                    const newOffset = offset + data[`${category}_projects`].length;
+                    loadMoreButton.dataset.offset = newOffset;
+
+                    if (data[`has_more_${category}`]) {
+                        loadMoreButton.style.display = 'block';
+                    } else {
+                        loadMoreButton.style.display = 'none';
+                    }
+
+                    if (projectCountSpan) {
+                        projectCountSpan.textContent = `(${data[`total_${category}_projects`]})`;
+                    }
+                })
+                .catch(error => console.error(`Error loading ${category} projects:`, error));
+        }
+
+        // Initial load is now handled by server-side rendering
+        // categories.forEach(category => {
+        //     loadProjects(category, 0);
+        // });
+
+        // Load more button event listeners
+        document.querySelectorAll('.load-more-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const category = this.dataset.category;
+                const offset = parseInt(this.dataset.offset);
+                loadProjects(category, offset);
+            });
+        });
+
+        // Toggle functionality for categories
+        document.querySelectorAll('.category-title').forEach(title => {
+            title.addEventListener('click', function() {
+                const categoryDiv = this.closest('.project-category');
+                const projectList = categoryDiv.querySelector('.project-list');
+                const toggleIcon = this.querySelector('.toggle-icon');
+
+                categoryDiv.classList.toggle('collapsed');
+                if (categoryDiv.classList.contains('collapsed')) {
+                    projectList.style.display = 'none';
+                    toggleIcon.textContent = '▶';
+                } else {
+                    projectList.style.display = 'block';
+                    toggleIcon.textContent = '▼';
+                }
+            });
+        });
+    });
+</script>
