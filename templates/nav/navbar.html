@@ -1,4 +1,16 @@
 <div class="navbar">
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
     <div class="navbar-left">
         <button class="menu-toggle">☰</button>
         <a href="{{ url_for('main.index') }}" class="app-title">DAILY</a>
