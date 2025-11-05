@@ -14,6 +14,9 @@ if not exist %VENV_DIR% (
 echo Activating virtual environment...
 call %VENV_DIR%\Scripts\activate
 
+echo Upgrading pip...
+python -m pip install --upgrade pip
+
 echo Installing required packages...
 pip install -r requirements.txt
 

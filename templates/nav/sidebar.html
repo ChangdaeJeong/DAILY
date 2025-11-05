@@ -103,7 +103,7 @@
         }
 
         function loadProjects(category, offset) {
-            fetch(`/get_categorized_projects?offset_${category}=${offset}`)
+            fetch(`{{ url_for('main.project.get_categorized_projects') }}?offset_${category}=${offset}`)
                 .then(response => response.json())
                 .then(data => {
                     const projectList = document.querySelector(`.${category}-projects`);

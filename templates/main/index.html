@@ -5,8 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAILY - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            //showLoadingSpinner();
+
+            const menuToggle = document.querySelector('.menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
 </head>
 <body>
+    {% include 'util/loading.html' %}
     {% include 'nav/navbar.html' %}
 
     <div class="container">

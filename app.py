@@ -2,6 +2,7 @@ from flask import Flask, render_template, flash, redirect, url_for, session
 import mysql_db
 from router import main_bp
 from flask_bcrypt import Bcrypt # Flask-Bcrypt 임포트
+from lib.inject import check_login_status, inject_sidebar_data, inject_user # inject 함수 임포트
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here' # Flash 메시지를 위해 secret_key 설정
@@ -13,36 +14,12 @@ def initialize_db_pool():
 
 app.register_blueprint(main_bp)
 
-@app.context_processor
-def inject_user():
-    user_data = {
-        'username': session['user_uid'] if 'user_uid' in session else '',
-        'user': {},
-        'logged_in': False
-    }
-    if user_data['username']:
-        conn = None
-        cursor = None
-        try:
-            conn = mysql_db.get_conn()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM daily_db_users WHERE uid = %s and active = %s", (user_data['username'], True))
-            user_record = cursor.fetchone()
-            if user_record:
-                user_data['user'] = user_record # 최신 레코드 전체를 반환
-                user_data['logged_in'] = True
-            else:
-                # 세션에 user_uid가 있지만 DB에서 찾을 수 없는 경우 (예: DB에서 삭제됨)
-                session.pop('user_uid', None) # 세션에서 제거
-        except Exception as e:
-            print(f"Error fetching user data for context processor: {e}")
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                mysql_db.close_conn(conn)
-    session['user'] = user_data
-    return dict(user=user_data)
+# 애플리케이션 전역에 before_request 핸들러 등록
+app.before_request(check_login_status)
+app.before_request(inject_sidebar_data)
+
+# context_processor 등록
+app.context_processor(inject_user)
 
 if __name__ == '__main__':
     app.run(debug=True)

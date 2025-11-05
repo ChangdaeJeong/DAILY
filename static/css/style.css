@@ -66,6 +66,10 @@ body {
     min-height: calc(100vh - 60px); /* Adjust based on navbar height */
 }
 
+.sidebar.hidden {
+    display: none;
+}
+
 /* Sidebar Styles */
 .sidebar {
     width: 250px;
@@ -436,4 +440,54 @@ input[type="text"]:focus, textarea:focus {
 
 .file-item {
     margin-left: 1.5em; /* Indent files */
+}
+
+/* Loading Page Styles */
+.loading-page {
+    height: 100vh; /* body에 클래스 추가 및 높이 설정 */
+}
+
+.loading-container-wrapper { /* 새로운 래퍼 클래스 추가 */
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+    overflow: hidden; /* 이 페이지에서만 overflow hidden 적용 */
+    position: fixed; /* 전체 화면을 덮도록 고정 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--bg-color); /* 배경색 설정 */
+    z-index: 9999; /* 다른 요소 위에 표시 */
+}
+.loading-content-container { /* 기존 .container 이름을 변경하여 충돌 방지 */
+    perspective: 800px;
+    text-align: center;
+}
+.word {
+    display: flex;
+    font-size: clamp(2rem, 8vw, 5rem);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+.char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(50px) rotateX(-90deg);
+    transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.char.visible {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+}
+.char.fade-out {
+    opacity: 0 !important;
+    transform: scale(0.8);
+    transition: opacity 0.5s, transform 0.5s;
+}
+.char.space {
+    width: 0.5em;
 }
