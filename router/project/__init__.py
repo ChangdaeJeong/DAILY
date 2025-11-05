@@ -123,7 +123,8 @@ def get_categorized_projects():
 def create():
     if request.method == 'POST':
         project_name = request.form['project_name']
-        project_path = request.form['project_path']
+        # project_path = request.form['project_path']
+        project_path = project_name+'/'
         interface_script = request.form['interface_script']
 
         user = session.get('user', {}).get('user', {})

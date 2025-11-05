@@ -68,10 +68,10 @@
                         <input type="text" id="project_name" name="project_name" placeholder="e.g., My Awesome Project" required>
                         <span id="project_name_status"></span>
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label for="project_path">Project Code Path</label>
                         <input type="text" id="project_path" name="project_path" placeholder="e.g., C:\Users\user\projects\my-project" required>
-                    </div>
+                    </div> -->
                     <div class="form-group">
                         <label for="interface_script">Interface Script (Python) <a href="{{ url_for('static', filename='py/DailyProjectInterface.py') }}" target="_blank">download</a></label>
                         <textarea id="interface_script" name="interface_script" placeholder="Loading script content..." required></textarea>
@@ -117,7 +117,7 @@
                 debounceTimer = setTimeout(function() {
                     const name = projectNameInput.value;
                     if (name.length > 0) {
-                        fetch("{{ url_for('main.project.check_project_name') }}", {
+                        fetch("{{ url_for('main.project.check_name') }}", {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'

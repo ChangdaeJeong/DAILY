@@ -14,4 +14,4 @@ main_bp.register_blueprint(report_bp, url_prefix='/report')
 
 @main_bp.route('/')
 def index():
-    return render_template('main/index.html', sidebar_projects_data=g.sidebar_projects_data)
+    return render_template('main/index.html')

@@ -16,7 +16,7 @@ app.register_blueprint(main_bp)
 
 # 애플리케이션 전역에 before_request 핸들러 등록
 app.before_request(check_login_status)
-app.before_request(inject_sidebar_data)
+app.context_processor(inject_sidebar_data)
 
 # context_processor 등록
 app.context_processor(inject_user)

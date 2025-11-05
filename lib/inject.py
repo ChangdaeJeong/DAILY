@@ -19,11 +19,12 @@ def check_login_status():
 
 @non_static_request
 def inject_sidebar_data():
-    g.sidebar_projects_data = {}
+    sidebar_projects_data = {}
     if(session.get('user_uid')):
         logged_in_user_id = session.get('user', {}).get('user', {}).get('id')
-        g.sidebar_projects_data = categorized_projects_data(logged_in_user_id)
-        current_app.logger.debug(f"URL: {request.url}, Sidebar Data: {g.sidebar_projects_data}")
+        sidebar_projects_data = categorized_projects_data(logged_in_user_id)
+
+    return dict(sidebar_projects_data=sidebar_projects_data)
 
 def inject_user():
     user_data = {
