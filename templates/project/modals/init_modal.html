@@ -96,11 +96,14 @@
                         setTimeout(() => window.location.reload(), 1000);
                     }
                 } else {
-                    alert('초기화 실패: ' + data.msg);
-                    hideInitModal();
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = '오류 발생 - 초기화 중단';
+                    progressLog.innerHTML += `<p style="color: red;">초기화 실패: ${data.msg}</p>`;
+                    progressLog.innerHTML += `<pre style="background: #f8f8f8; padding: 10px; border: 1px solid #ddd;">STDOUT:\n${data.stdout}\n\nSTDERR:\n${data.stderr}</pre>`;
+                    //alert('초기화 실패: ' + data.msg);
+                    //hideInitModal();
                 }
             } catch (error) {
-                console.error('Error during initialization step:', error);
                 progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`;
                 alert('프로젝트 초기화 중 예상치 못한 오류가 발생했습니다.');
                 hideInitModal();

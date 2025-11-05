@@ -137,7 +137,7 @@
                     {% if project.state == 'new' %}
                         <button class="btn" id="init_project_btn">Initialize Project</button>
                         <button class="btn btn-danger" id="project_delete_btn">Delete Project</button>
-                    {% elif project.state == 'initialized' %}
+                    {% elif project.state == 'init' %}
                         <button class="btn">Start Analysis</button>
                         <button class="btn btn-danger" id="project_delete_btn">Delete Project</button>
                     {% elif project.state == 'deleted' %}

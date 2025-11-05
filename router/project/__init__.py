@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 from flask import current_app, render_template, Blueprint, request, redirect, url_for, session, jsonify
 import lib.mysql_db as mysql_db
@@ -380,19 +381,19 @@ def initialize():
             if result['success']:
                 return jsonify(success=True, msg="Project Init 완료.", next_step=3)
             else:
-                return jsonify(success=False, msg=result['msg'])
+                return jsonify(success=False, msg=result['msg']+'\n 프로젝트 초기화 실패.', stdout=result['stdout'], stderr=result['stderr'])
         elif step == 3: # Project Build
             result = run_if.execute_interface_build(project_root_dir)
             if result['success']:
                 return jsonify(success=True, msg="Project Build 완료.", next_step=4)
             else:
-                return jsonify(success=False, msg=result['msg'])
+                return jsonify(success=False, msg=result['msg']+'\n 프로젝트 빌드 실패.', stdout=result['stdout'], stderr=result['stderr'])
         elif step == 4: # Project Run
             result = run_if.execute_interface_run(project_root_dir)
             if result['success']:
                 return jsonify(success=True, msg="Project Run 완료.", next_step=5)
             else:
-                return jsonify(success=False, msg=result['msg'])
+                return jsonify(success=False, msg=result['msg']+'\n 프로젝트 실행 실패.', stdout=result['stdout'], stderr=result['stderr'])
         elif step == 5: # 프로젝트 하위 파일 검색
             full_path = os.path.join('workspace', project_root_dir)
             files_in_project = []
