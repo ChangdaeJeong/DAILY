@@ -98,6 +98,82 @@ def categorized_projects_data(logged_in_user_id, offsets=None):
             cursor.close()
         if conn:
             mysql_db.close_conn(conn)
+        return results
+
+
+@project_bp.route('/get_batch_files/<int:project_id>/<int:batch_num>', methods=['GET'])
+def get_batch_files(project_id, batch_num):
+    conn = None
+    cursor = None
+    user_data = session.get('user', {})
+    logged_in_user_id = user_data.get('user', {}).get('id')
+
+    if not logged_in_user_id:
+        return jsonify(success=False, msg="로그인이 필요합니다."), 401
+
+    try:
+        conn = mysql_db.get_conn()
+        cursor = conn.cursor(dictionary=True)
+
+        # 프로젝트 소유자 확인
+        cursor.execute("SELECT user_id FROM daily_db_projects WHERE id = %s", (project_id,))
+        project = cursor.fetchone()
+
+        if not project:
+            return jsonify(success=False, msg="프로젝트를 찾을 수 없습니다."), 404
+
+        if project['user_id'] != logged_in_user_id:
+            return jsonify(success=False, msg="접근 거부: 이 프로젝트의 소유자가 아닙니다."), 403
+
+        # 해당 배치에 속한 파일 리스트와 분석 상태 가져오기
+        cursor.execute("""
+            SELECT
+                dpf.id AS file_id,
+                dpf.filepath,
+                dpf.result,
+                dpf.flaws,
+                GROUP_CONCAT(CONCAT_WS('||', dptfa.flaw_detail, dptfa.patch_msgs, dptfa.execute_type, dptfa.execute_succeed, dptfa.execute_msgs) SEPARATOR '@@') AS analysis_details
+            FROM
+                daily_db_project_files dpf
+            LEFT JOIN
+                daily_db_project_task_file_analysis dptfa ON dpf.id = dptfa.file_id
+            WHERE
+                dpf.prj_id = %s AND dpf.batch = %s
+            GROUP BY
+                dpf.id, dpf.filepath, dpf.result, dpf.flaws
+            ORDER BY
+                dpf.filepath
+        """, (project_id, batch_num))
+        files_data = cursor.fetchall()
+
+        # analysis_details 파싱
+        for file_data in files_data:
+            if file_data['analysis_details']:
+                analysis_list = []
+                for detail_str in file_data['analysis_details'].split('@@'):
+                    parts = detail_str.split('||')
+                    if len(parts) == 5:
+                        analysis_list.append({
+                            'flaw_detail': parts[0],
+                            'patch_msgs': parts[1],
+                            'execute_type': parts[2],
+                            'execute_succeed': parts[3] == '1', # BOOLEAN으로 변환
+                            'execute_msgs': parts[4]
+                        })
+                file_data['analysis_details'] = analysis_list
+            else:
+                file_data['analysis_details'] = []
+
+        return jsonify(success=True, files=files_data)
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching batch files: {e}", exc_info=True)
+        return jsonify(success=False, msg=f"배치 파일 목록을 가져오는 중 오류 발생: {e}"), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            mysql_db.close_conn(conn)
     
     return results
 
@@ -286,9 +362,47 @@ def detail_page(project_id):
         if project['state'] == 'new':
             # state가 'new'이고, 로그인된 사용자가 프로젝트 소유자이면 init.html 렌더링
             return redirect(url_for('main.project.init_page', project_id=project_id))
-        return render_template('project/detail.html', project=project, files=files) # detail.html은 나중에 구현
+        
+        # 프로젝트 진행률 계산 (doing 상태일 경우에만)
+        project_progress = 0
+        if project['state'] == 'doing':
+            cursor.execute("""
+                SELECT
+                    COALESCE(100 * SUM(CASE WHEN dpf.result != 'Queued' THEN 1 ELSE 0 END) / NULLIF(COUNT(dpf.id), 0), 0) AS progress
+                FROM
+                    daily_db_project_files dpf
+                WHERE
+                    dpf.prj_id = %s AND dpf.batch = %s
+            """, (project_id, project['batch']))
+            progress_result = cursor.fetchone()
+            if progress_result and progress_result['progress'] is not None:
+                project_progress = round(progress_result['progress'], 2)
+        project['progress'] = project_progress
+
+        # 배치별 파일 상태 요약 정보 가져오기
+        cursor.execute("""
+            SELECT
+                dpf.batch,
+                SUM(CASE WHEN dpf.result = 'Queued' THEN 1 ELSE 0 END) AS queued_count,
+                SUM(CASE WHEN dpf.result = 'Completed' THEN 1 ELSE 0 END) AS completed_count,
+                SUM(CASE WHEN dpf.result = 'Skipped' THEN 1 ELSE 0 END) AS skipped_count,
+                SUM(CASE WHEN dpf.result = 'Failed' THEN 1 ELSE 0 END) AS failed_count,
+                COUNT(dpf.id) AS total_files,
+                COALESCE(100 * SUM(CASE WHEN dpf.result != 'Queued' THEN 1 ELSE 0 END) / NULLIF(COUNT(dpf.id), 0), 0) AS progress
+            FROM
+                daily_db_project_files dpf
+            WHERE
+                dpf.prj_id = %s
+            GROUP BY
+                dpf.batch
+            ORDER BY
+                dpf.batch DESC
+        """, (project_id,))
+        batch_file_status = cursor.fetchall()
+
+        return render_template('project/detail.html', project=project, batch_file_status=batch_file_status)
     except Exception as e:
-        print(f"Error fetching project details: {e}")
+        current_app.logger.error(f"Error fetching project details: {e}", exc_info=True)
         return "Error loading project details", 500
     finally:
         if cursor:

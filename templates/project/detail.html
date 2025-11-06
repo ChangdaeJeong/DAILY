@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - Project Detail</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>
+</head>
+<body>
+    {% include 'util/loading.html' %}
+    {% include 'nav/navbar.html' %}
+
+    <div class="container">
+        {% include 'nav/sidebar.html' with context %}
+        <div class="main-content">
+            <div class="main-header">
+                <h1>Project Detail: {{ project.name }} (Batch: {{ project.batch }})</h1>
+                <p>상태: <span class="status-bubble status-{{ project.state }}">{{ project.state }}</span>{% if project.state == 'doing' %} | 진행률: {{ project.progress }}%{% endif %}</p>
+            </div>
+
+            <div class="project-details-section">
+                <h2>배치별 파일 상태</h2>
+                <div id="batch-accordion" class="accordion">
+                    <!-- 배치별 파일 상태 패널이 여기에 동적으로 로드됩니다. -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patch Diff 모달 -->
+    <div id="patchDiffModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closePatchDiffModal">&times;</span>
+            <h2>Patch Diff</h2>
+            <pre id="patchDiffContent" class="diff-content"></pre>
+        </div>
+    </div>
+
+    <!-- batchFileStatusData를 HTML data 속성에 저장 -->
+    <div id="batch-status-data" data-batch-status="{{ batch_file_status | tojson | urlencode }}"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const batchAccordion = document.getElementById('batch-accordion');
+            const projectId = {{ project.id }};
+            const batchFileStatusData = JSON.parse(decodeURIComponent(document.getElementById('batch-status-data').dataset.batchStatus));
+
+            const patchDiffModal = document.getElementById('patchDiffModal');
+            const closePatchDiffModal = document.getElementById('closePatchDiffModal');
+            const patchDiffContent = document.getElementById('patchDiffContent');
+
+            // Patch Diff 모달 닫기
+            closePatchDiffModal.addEventListener('click', function() {
+                patchDiffModal.style.display = 'none';
+            });
+
+            window.addEventListener('click', function(event) {
+                if (event.target == patchDiffModal) {
+                    patchDiffModal.style.display = 'none';
+                }
+            });
+
+            // 배치별 아코디언 패널 동적 생성
+            batchFileStatusData.forEach(batchData => {
+                const accordionItem = document.createElement('div');
+                accordionItem.classList.add('accordion-item');
+
+                const accordionHeader = document.createElement('div');
+                accordionHeader.classList.add('accordion-header');
+                let batchProgressHtml = '';
+                // 'doing' 상태일 경우에만 배치 진행률 표시
+                if (batchData.progress !== null && batchData.progress !== undefined && batchData.progress > 0) {
+                    batchProgressHtml = ` | 진행률: ${batchData.progress}%`;
+                }
+                accordionHeader.innerHTML = `
+                    <h3>Batch ${batchData.batch}</h3>
+                    <p>Queued: ${batchData.queued_count}, Completed: ${batchData.completed_count}, Skipped: ${batchData.skipped_count}, Failed: ${batchData.failed_count} (Total: ${batchData.total_files})${batchProgressHtml}</p>
+                    <span class="toggle-icon">+</span>
+                `;
+                accordionItem.appendChild(accordionHeader);
+
+                const accordionContent = document.createElement('div');
+                accordionContent.classList.add('accordion-content');
+                accordionContent.style.display = 'none'; // 기본적으로 숨김
+
+                const fileListContainer = document.createElement('div');
+                fileListContainer.classList.add('file-list-container');
+                fileListContainer.id = `file-list-batch-${batchData.batch}`;
+                fileListContainer.innerHTML = '<p>파일 정보를 불러오는 중...</p>'; // 로딩 메시지
+                accordionContent.appendChild(fileListContainer);
+                accordionItem.appendChild(accordionContent);
+                batchAccordion.appendChild(accordionItem);
+            });
+
+            // 가장 최신 배치 (첫 번째 항목)를 기본적으로 펼치기
+            if (batchFileStatusData.length > 0) {
+                const latestAccordionItem = batchAccordion.querySelector('.accordion-item');
+                const latestAccordionContent = latestAccordionItem.querySelector('.accordion-content');
+                const latestToggleIcon = latestAccordionItem.querySelector('.toggle-icon');
+                const latestBatch = latestAccordionItem.querySelector('h3').textContent.replace('Batch ', '');
+                const latestFileListContainer = latestAccordionContent.querySelector('.file-list-container');
+
+                latestAccordionContent.style.display = 'block';
+                latestToggleIcon.textContent = '-';
+
+                // 최신 배치의 파일 정보 로드
+                if (latestFileListContainer.dataset.loaded !== 'true') {
+                    try {
+                        const response = await fetch(`/project/get_batch_files/${projectId}/${latestBatch}`);
+                        const data = await response.json();
+
+                        if (data.success) {
+                            latestFileListContainer.innerHTML = ''; // 기존 리스트 초기화
+                            if (data.files.length === 0) {
+                                latestFileListContainer.innerHTML = '<p>해당 배치에 파일이 없습니다.</p>';
+                            } else {
+                                // 진행 중인 파일 우선 정렬
+                                const statusOrder = { 'Queued': 1, 'Doing': 2, 'Failed': 3, 'Skipped': 4, 'Completed': 5 };
+                                const sortedFiles = data.files.sort((a, b) => {
+                                    return (statusOrder[a.result] || 99) - (statusOrder[b.result] || 99);
+                                });
+
+                                sortedFiles.forEach(file => {
+                                    const fileItem = document.createElement('div');
+                                    fileItem.classList.add('file-item');
+
+                                    const fileHeader = document.createElement('div');
+                                    fileHeader.classList.add('file-header');
+                                    fileHeader.innerHTML = `
+                                        <h4>${file.filepath}</h4>
+                                        <p>상태: <span class="status-bubble status-${file.result.toLowerCase()}">${file.result}</span></p>
+                                        <span class="toggle-icon">+</span>
+                                    `;
+                                    fileItem.appendChild(fileHeader);
+
+                                    const fileDetails = document.createElement('div');
+                                    fileDetails.classList.add('file-details');
+                                    fileDetails.style.display = 'none'; // 기본적으로 숨김
+
+                                    let analysisDetailsHtml = '';
+                                    if (file.analysis_details && file.analysis_details.length > 0) {
+                                        analysisDetailsHtml = '<h5>분석 상세:</h5><ul>';
+                                        file.analysis_details.forEach(detail => {
+                                            const patchMsgClass = detail.patch_msgs ? 'patch-msg-link' : '';
+                                            analysisDetailsHtml += `
+                                                <li>
+                                                    <p><strong>결함:</strong> ${detail.flaw_detail || '없음'}</p>
+                                                    <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg="${detail.patch_msgs}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
+                                                    <p><strong>실행 타입:</strong> ${detail.execute_type || '없음'}</p>
+                                                    <p><strong>실행 성공:</strong> ${detail.execute_succeed ? '예' : '아니오'}</p>
+                                                    <p><strong>실행 메시지:</strong> ${detail.execute_msgs || '없음'}</p>
+                                                </li>
+                                            `;
+                                        });
+                                        analysisDetailsHtml += '</ul>';
+                                    } else {
+                                        analysisDetailsHtml = '<p>분석 상세 정보 없음.</p>';
+                                    }
+                                    fileDetails.innerHTML = `
+                                        <p><strong>결함 요약:</strong> ${file.flaws || '없음'}</p>
+                                        ${analysisDetailsHtml}
+                                    `;
+                                    fileItem.appendChild(fileDetails);
+                                    latestFileListContainer.appendChild(fileItem);
+                                });
+                            }
+                            latestFileListContainer.dataset.loaded = 'true'; // 로드 완료 표시
+                        } else {
+                            latestFileListContainer.innerHTML = `<p>파일 정보를 불러오는데 실패했습니다: ${data.msg}</p>`;
+                        }
+                    } catch (error) {
+                        latestFileListContainer.innerHTML = `<p>파일 정보를 불러오는 중 오류 발생: ${error.message}</p>`;
+                        console.error('Error fetching batch files:', error);
+                    }
+                }
+            }
+
+            // 배치 아코디언 헤더 클릭 이벤트 (기존 로직 유지)
+            batchAccordion.addEventListener('click', async function(event) {
+                let header = event.target.closest('.accordion-header');
+                if (header) {
+                    const accordionItem = header.closest('.accordion-item');
+                    const accordionContent = accordionItem.querySelector('.accordion-content');
+                    const toggleIcon = header.querySelector('.toggle-icon');
+                    const batch = header.querySelector('h3').textContent.replace('Batch ', '');
+                    const fileListContainer = accordionContent.querySelector('.file-list-container');
+
+                    if (accordionContent.style.display === 'none') {
+                        // 내용 펼치기
+                        accordionContent.style.display = 'block';
+                        toggleIcon.textContent = '-';
+
+                        // 파일 정보 로드 (한 번만 로드)
+                        if (fileListContainer.dataset.loaded !== 'true') {
+                            try {
+                                const response = await fetch(`/project/get_batch_files/${projectId}/${batch}`);
+                                const data = await response.json();
+
+                                if (data.success) {
+                                    fileListContainer.innerHTML = ''; // 기존 리스트 초기화
+                                    if (data.files.length === 0) {
+                                        fileListContainer.innerHTML = '<p>해당 배치에 파일이 없습니다.</p>';
+                                    } else {
+                                        // 진행 중인 파일 우선 정렬
+                                        const statusOrder = { 'Queued': 1, 'Doing': 2, 'Failed': 3, 'Skipped': 4, 'Completed': 5 };
+                                        const sortedFiles = data.files.sort((a, b) => {
+                                            return (statusOrder[a.result] || 99) - (statusOrder[b.result] || 99);
+                                        });
+
+                                        sortedFiles.forEach(file => {
+                                            const fileItem = document.createElement('div');
+                                            fileItem.classList.add('file-item');
+
+                                            const fileHeader = document.createElement('div');
+                                            fileHeader.classList.add('file-header');
+                                            fileHeader.innerHTML = `
+                                                <h4>${file.filepath}</h4>
+                                                <p>상태: <span class="status-bubble status-${file.result.toLowerCase()}">${file.result}</span></p>
+                                                <span class="toggle-icon">+</span>
+                                            `;
+                                            fileItem.appendChild(fileHeader);
+
+                                            const fileDetails = document.createElement('div');
+                                            fileDetails.classList.add('file-details');
+                                            fileDetails.style.display = 'none'; // 기본적으로 숨김
+
+                                            let analysisDetailsHtml = '';
+                                            if (file.analysis_details && file.analysis_details.length > 0) {
+                                                analysisDetailsHtml = '<h5>분석 상세:</h5><ul>';
+                                                file.analysis_details.forEach(detail => {
+                                                    const patchMsgClass = detail.patch_msgs ? 'patch-msg-link' : '';
+                                                    analysisDetailsHtml += `
+                                                        <li>
+                                                            <p><strong>결함:</strong> ${detail.flaw_detail || '없음'}</p>
+                                                            <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg="${detail.patch_msgs}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
+                                                            <p><strong>실행 타입:</strong> ${detail.execute_type || '없음'}</p>
+                                                            <p><strong>실행 성공:</strong> ${detail.execute_succeed ? '예' : '아니오'}</p>
+                                                            <p><strong>실행 메시지:</strong> ${detail.execute_msgs || '없음'}</p>
+                                                        </li>
+                                                    `;
+                                                });
+                                                analysisDetailsHtml += '</ul>';
+                                            } else {
+                                                analysisDetailsHtml = '<p>분석 상세 정보 없음.</p>';
+                                            }
+                                            fileDetails.innerHTML = `
+                                                <p><strong>결함 요약:</strong> ${file.flaws || '없음'}</p>
+                                                ${analysisDetailsHtml}
+                                            `;
+                                            fileItem.appendChild(fileDetails);
+                                            fileListContainer.appendChild(fileItem);
+                                        });
+                                    }
+                                    fileListContainer.dataset.loaded = 'true'; // 로드 완료 표시
+                                } else {
+                                    fileListContainer.innerHTML = `<p>파일 정보를 불러오는데 실패했습니다: ${data.msg}</p>`;
+                                }
+                            } catch (error) {
+                                fileListContainer.innerHTML = `<p>파일 정보를 불러오는 중 오류 발생: ${error.message}</p>`;
+                                console.error('Error fetching batch files:', error);
+                            }
+                        }
+                    } else {
+                        // 내용 접기
+                        accordionContent.style.display = 'none';
+                        toggleIcon.textContent = '+';
+                    }
+                }
+            });
+
+            // 파일 아코디언 헤더 클릭 이벤트 (이벤트 위임)
+            batchAccordion.addEventListener('click', function(event) {
+                let fileHeader = event.target.closest('.file-header');
+                if (fileHeader) {
+                    const fileItem = fileHeader.closest('.file-item');
+                    const fileDetails = fileItem.querySelector('.file-details');
+                    const toggleIcon = fileHeader.querySelector('.toggle-icon');
+
+                    if (fileDetails.style.display === 'none') {
+                        fileDetails.style.display = 'block';
+                        toggleIcon.textContent = '-';
+                    } else {
+                        fileDetails.style.display = 'none';
+                        toggleIcon.textContent = '+';
+                    }
+                }
+            });
+
+            // Patch Message Link 클릭 이벤트 (이벤트 위임)
+            batchAccordion.addEventListener('click', function(event) {
+                if (event.target.classList.contains('patch-msg-link')) {
+                    const patchMsg = event.target.dataset.patchMsg;
+                    patchDiffContent.textContent = patchMsg;
+                    patchDiffModal.style.display = 'block';
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* 기존 모달 스타일 제거 */
+        /* .modal, .modal-content, .close-button 관련 스타일 제거 */
+
+        /* 아코디언 컨테이너 */
+        .accordion {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        /* 아코디언 아이템 */
+        .accordion-item {
+            border-bottom: 1px solid #eee;
+        }
+
+        .accordion-item:last-child {
+            border-bottom: none;
+        }
+
+        /* 아코디언 헤더 (배치 정보) */
+        .accordion-header {
+            background-color: #f4f4f4;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .accordion-header:hover {
+            background-color: #e9e9e9;
+        }
+
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .accordion-header p {
+            margin: 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .accordion-header .toggle-icon {
+            font-size: 1.5em;
+            line-height: 1;
+        }
+
+        /* 아코디언 내용 (파일 목록) */
+        .accordion-content {
+            padding: 10px 15px;
+            background-color: #fff;
+            border-top: 1px solid #eee;
+        }
+
+        /* 파일 목록 컨테이너 (스크롤 가능) */
+        .file-list-container {
+            max-height: 500px; /* 최대 높이 설정 */
+            overflow-y: auto; /* 스크롤바 표시 */
+            border: 1px solid #f0f0f0;
+            padding: 10px;
+            background-color: #fafafa;
+            border-radius: 3px;
+        }
+
+        /* 파일 아이템 */
+        .file-item {
+            border: 1px solid #e0e0e0;
+            margin-bottom: 8px;
+            border-radius: 3px;
+            background-color: #ffffff;
+        }
+
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 파일 헤더 (파일 경로 및 상태) */
+        .file-header {
+            padding: 10px;
+            background-color: #fcfcfc;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .file-header:hover {
+            background-color: #f5f5f5;
+        }
+
+        .file-header h4 {
+            margin: 0;
+            font-size: 1em;
+            color: #444;
+        }
+
+        .file-header p {
+            margin: 0;
+            font-size: 0.85em;
+            color: #777;
+        }
+
+        .file-header .toggle-icon {
+            font-size: 1.2em;
+            line-height: 1;
+        }
+
+        /* 파일 상세 (Analysis 정보) */
+        .file-details {
+            padding: 10px;
+            background-color: #ffffff;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .file-details h5 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .file-details ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .file-details li {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        .file-details li p {
+            margin: 0 0 3px 0;
+        }
+
+        /* 상태 버블 스타일 */
+        .status-bubble {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }
+
+        /* 프로젝트 상태 버블 색상 (sidebar의 progress-tag와 통일) */
+        .status-new { background-color: #60A5FA; } /* Blue for New */
+        .status-init { background-color: #F97316; } /* Orange for Init */
+        .status-doing { background-color: #22C55E; color: #fff; } /* Green for Doing */
+        .status-done { background-color: #94A3B8; } /* Gray for Done (var(--placeholder-color)) */
+        .status-delete { background-color: #EF4444; } /* Red for Delete */
+        /* 파일 상태 버블 색상 (기존 유지 또는 필요시 통일) */
+        .status-queued { background-color: #17a2b8; } /* Cyan */
+        .status-completed { background-color: #6c757d; } /* Gray */
+        .status-skipped { background-color: #6c757d; } /* Gray */
+        .status-failed { background-color: #dc3545; } /* Red */
+
+        /* Patch Message Link 스타일 */
+        .patch-msg-link {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .patch-msg-link:hover {
+            color: #0056b3;
+        }
+
+        /* Patch Diff 모달 스타일 (기존 모달 스타일 재활용 및 수정) */
+        #patchDiffModal .modal-content {
+            width: 80%; /* 파일 상세 모달보다 작게 */
+            max-width: 800px;
+            margin: 10% auto; /* 중앙에 위치 */
+        }
+
+        .diff-content {
+            background-color: #eef;
+            border: 1px solid #ccc;
+            padding: 10px;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            font-family: 'Courier New', Courier, monospace;
+            max-height: 400px; /* 스크롤 가능하도록 최대 높이 설정 */
+            overflow-y: auto;
+        }
+    </style>
+</body>
+</html>
