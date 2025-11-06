@@ -13,15 +13,15 @@ def _execute_interface_function(function_name, project_root_dir):
     """
     full_project_path = os.path.join('workspace', project_root_dir)
     interface_file_name = 'DailyProjectInterface.py' # 파일 이름만 지정
-    
+
     original_cwd = os.getcwd() # 현재 작업 디렉토리 저장
-    
+
     # stdout과 stderr를 캡처하기 위한 StringIO 객체 생성
     old_stdout = sys.stdout
     old_stderr = sys.stderr
     redirected_stdout = io.StringIO()
     redirected_stderr = io.StringIO()
-    
+
     try:
         # stdout과 stderr 리다이렉션
         sys.stdout = redirected_stdout
@@ -40,34 +40,34 @@ def _execute_interface_function(function_name, project_root_dir):
             interface_instance = interface_module.DailyProjectInterface() # 클래스 인스턴스화
             if hasattr(interface_instance, function_name) and callable(getattr(interface_instance, function_name)):
                 function_result = getattr(interface_instance, function_name)() # 인자 없이 메서드 호출
-                
+
                 # 캡처된 출력 내용 가져오기
                 stdout_output = redirected_stdout.getvalue()
                 stderr_output = redirected_stderr.getvalue()
 
                 return {
-                    'success': function_result, 
+                    'success': function_result,
                     'msg': f"인터페이스 함수 '{function_name}' 실행..",
                     'stdout': stdout_output,
                     'stderr': stderr_output
                 } # DailyProjectInterface의 메서드가 True/False를 반환한다고 가정
             else:
                 return {
-                    'success': False, 
+                    'success': False,
                     'msg': f"DailyProjectInterface 클래스에 '{function_name}' 메서드가 없습니다.",
                     'stdout': redirected_stdout.getvalue(),
                     'stderr': redirected_stderr.getvalue()
                 }
         else:
             return {
-                'success': False, 
+                'success': False,
                 'msg': "DailyProjectInterface.py에 'DailyProjectInterface' 클래스가 없습니다.",
                 'stdout': redirected_stdout.getvalue(),
                 'stderr': redirected_stderr.getvalue()
             }
     except Exception as e:
         return {
-            'success': False, 
+            'success': False,
             'msg': f"인터페이스 함수 '{function_name}' 실행 중 오류 발생: {e}",
             'stdout': redirected_stdout.getvalue(),
             'stderr': redirected_stderr.getvalue()

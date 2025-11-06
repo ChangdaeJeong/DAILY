@@ -32,14 +32,14 @@ def categorized_projects_data(logged_in_user_id, offsets=None):
         'total_done_projects': 0,
         'total_delete_projects': 0
     }
-    
+
     project_states = {
         'doing': ['doing'],
         'init': ['init', 'new'],
         'done': ['done'],
         'delete': ['delete']
     }
-    
+
     limit = 5 # 각 카테고리별로 가져올 프로젝트 수
 
     try:
@@ -48,7 +48,7 @@ def categorized_projects_data(logged_in_user_id, offsets=None):
 
         for category, states in project_states.items():
             offset = offsets.get(f'offset_{category}', 0)
-            
+
             # 총 프로젝트 수 확인
             state_placeholders = ', '.join(['%s'] * len(states))
             count_query = f"SELECT COUNT(*) FROM daily_db_projects WHERE user_id = %s AND state IN ({state_placeholders})"
@@ -86,7 +86,7 @@ def categorized_projects_data(logged_in_user_id, offsets=None):
                 else:
                     project['progress'] = None
                 category_list.append(project)
-            
+
             results[f'{category}_projects'] = category_list
             results[f'has_more_{category}'] = total_category_projects > offset + len(category_list)
             results[f'total_{category}_projects'] = total_category_projects
@@ -171,7 +171,7 @@ def get_batch_files(project_id, batch_num):
             cursor.close()
         if conn:
             mysql_db.close_conn(conn)
-    
+
     return results
 
 @project_bp.route('/get_categorized_projects')
@@ -185,7 +185,7 @@ def get_categorized_projects():
         'offset_done': request.args.get('offset_done', 0, type=int),
         'offset_delete': request.args.get('offset_delete', 0, type=int)
     }
-    
+
     results = categorized_projects_data(logged_in_user_id, offsets)
     return jsonify(results)
 
@@ -339,7 +339,7 @@ def detail_page(project_id):
 
         if not project:
             return "Project not found", 404
-        
+
         # 프로젝트 소유자 확인
         if project['user_id'] != logged_in_user_id:
             return "Access Denied: You do not own this project.", 403
@@ -347,7 +347,7 @@ def detail_page(project_id):
         if project['state'] == 'new':
             # state가 'new'이고, 로그인된 사용자가 프로젝트 소유자이면 init.html 렌더링
             return redirect(url_for('main.project.init_page', project_id=project_id))
-        
+
         # 프로젝트 진행률 계산 (doing 상태일 경우에만)
         project_progress = 0
         if project['state'] == 'doing':
@@ -410,7 +410,7 @@ def init_page(project_id):
 
         if not project:
             return "Project not found", 404
-        
+
         # 프로젝트 소유자 확인
         if project['user_id'] != logged_in_user_id:
             return "Access Denied: You do not own this project.", 403
@@ -467,7 +467,7 @@ def _get_file_extension(filename):
 def _get_filtered_project_files(project_root_dir):
     full_path = os.path.join('workspace', project_root_dir)
     files_in_project = []
-    
+
     excluded_dirs = ['node_modules', 'venv', '__pycache__', '.git', 'dist', 'build', 'static', 'templates', 'router']
     excluded_file_patterns = [r'\.log$', r'\.tmp$', r'\.swp$', r'\.bak$', r'\.gitignore$', r'\.DS_Store$', r'DailyProjectInterface\.py$'] # DailyProjectInterface.py 추가
 
@@ -477,10 +477,10 @@ def _get_filtered_project_files(project_root_dir):
 
             for file in files:
                 relative_path = os.path.relpath(os.path.join(root, file), full_path)
-                
+
                 if any(re.search(pattern, relative_path) for pattern in excluded_file_patterns):
                     continue
-                
+
                 if _get_file_extension(file) == '':
                     continue
 
@@ -563,7 +563,7 @@ def initialize():
                 return jsonify(success=False, msg=f"프로젝트 하위 파일 검색 중 오류 발생: {e}")
         elif step == 6: # 선택된 파일 서버로 전송 및 DB 저장
             selected_files = request.json.get('selected_files', [])
-            
+
             # 1. 클라이언트단에서 전달된 파일 리스트를 받아 각 파일들이 존재하는지 체크
             # _get_filtered_project_files 함수를 사용하여 필터링된 전체 프로젝트 파일 목록을 가져옴
             try:
@@ -593,7 +593,7 @@ def initialize():
                 if cursor.rowcount == 0:
                     conn.rollback()
                     return jsonify(success=False, msg="프로젝트를 찾을 수 없거나 소유자가 일치하지 않습니다."), 404
-                
+
                 cursor.execute("SELECT batch FROM daily_db_projects WHERE id = %s", (project_id,))
                 new_batch = cursor.fetchone()['batch']
 
@@ -605,7 +605,7 @@ def initialize():
 
                 # 5. 작업이 완료되면, projects 테이블에서 state를 init으로 변경한다. 실패하면 rollback
                 cursor.execute("UPDATE daily_db_projects SET state = 'init' WHERE id = %s", (project_id,))
-                
+
                 # 6. transaction end 및 응답 반환
                 conn.commit()
                 return jsonify(success=True, msg="선택된 파일 전송 및 프로젝트 초기화 완료!", next_step=7) # next_step 7은 완료를 의미

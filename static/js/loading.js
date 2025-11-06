@@ -47,7 +47,7 @@ function showLoadingSpinner() {
             wordElement.style.letterSpacing = '0.2em';
             await sleep(100);
             animateIn(chars2);
-            
+
             await sleep(text2.length * 60 + 2000);
             hideLoadingSpinner(); // 애니메이션 완료 후 로딩 스피너 숨기기
         })();

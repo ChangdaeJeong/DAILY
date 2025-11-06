@@ -12,7 +12,7 @@ def check_login_status():
     # 로그인되지 않은 상태에서 GET 요청 시 로그인 페이지로 리다이렉트
     if not session.get('user_uid') and request.method == 'GET':
         return redirect(url_for('main.auth.login'))
-    
+
     # 로그인되지 않은 상태에서 POST 요청 시 JSON 에러 반환
     if not session.get('user_uid') and request.method == 'POST':
         return jsonify(success=False, msg='로그인되지 않았습니다.'), 401

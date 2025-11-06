@@ -18,7 +18,7 @@
         const initModalCloseButton = document.getElementById('initModalCloseButton');
         const progressLog = document.getElementById('progress-log');
         const progressBar = document.getElementById('progressBar');
-        
+
         let currentStep = 0;
         const steps = [
             "Workspace 초기화 중...",
@@ -138,7 +138,7 @@
                             hideInitModal();
                             return;
                         }
-                        
+
                         // Start step-by-step initialization
                         runInitializationStep(currentStep);
 

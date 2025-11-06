@@ -18,7 +18,7 @@ class DailyProjectInterface:
     def build(self):
         print(f"Building project at ...")
         os.system(f"build commands here")
-        
+
         # check build success and return result
         ret = True
         return ret

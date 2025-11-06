@@ -16,7 +16,7 @@ def login():
     if request.method == 'POST':
         uid = request.form['uid']
         pwd = request.form['pwd']
-        
+
         conn = None
         cursor = None
         try:

@@ -36,7 +36,7 @@ def get_messages(user_id, project_id=None, limit=7, offset=0):
         if conn:
             cursor = conn.cursor(dictionary=True)
             sql = """
-                SELECT m.id, m.project_id, m.title, m.message, m.created_at 
+                SELECT m.id, m.project_id, m.title, m.message, m.created_at
                 FROM daily_db_messages m
                 JOIN daily_db_projects p ON m.project_id = p.id
                 WHERE p.user_id = %s
@@ -47,7 +47,7 @@ def get_messages(user_id, project_id=None, limit=7, offset=0):
                 params.append(project_id)
             sql += " ORDER BY m.created_at DESC LIMIT %s OFFSET %s"
             params.extend([limit, offset])
-            
+
             cursor.execute(sql, tuple(params))
             messages = cursor.fetchall()
             return messages

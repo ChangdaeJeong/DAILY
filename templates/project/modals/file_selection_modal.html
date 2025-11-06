@@ -335,7 +335,7 @@
                     });
                 } else { // 폴더인 경우
                     li.className = 'file-tree-item file-tree-folder'; // 폴더에 대한 클래스 추가
-                    
+
                     const folderHeader = document.createElement('div');
                     folderHeader.className = 'file-tree-folder-header';
 
@@ -355,7 +355,7 @@
                     folderHeader.appendChild(folderName);
 
                     folderName.addEventListener('click', function(event) {
-                        event.stopPropagation(); 
+                        event.stopPropagation();
                         const folderToggleSpan = this.parentNode.querySelector('.folder-toggle');
                         if (folderToggleSpan) {
                             folderToggleSpan.click();
@@ -459,7 +459,7 @@
                         shouldBeChecked = false;
                     }
                 }
-                
+
                 // 체크박스 상태 업데이트
                 checkbox.checked = shouldBeChecked;
                 // checkbox.dispatchEvent(new Event('change')); // 부모 폴더 상태 업데이트를 위해 change 이벤트 발생 (이제 필요 없음)

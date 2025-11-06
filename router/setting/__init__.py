@@ -9,7 +9,7 @@ def setting_page():
 
     conn = mysql_db.get_conn()
     cursor = conn.cursor(dictionary=True)
-    
+
     setting_config = None
     try:
         cursor.execute("SELECT * FROM daily_db_setting_config WHERE user_id = %s", (logged_in_user_id,))
@@ -42,7 +42,7 @@ def setting_page():
 @setting_bp.route('/save', methods=['POST'])
 def save_setting():
     logged_in_user_id = session.get('user', {}).get('user', {}).get('id')
-    
+
     # 폼 데이터 가져오기
     operation_days = request.form.getlist('operation_days') # 리스트로 받아옴
     operation_days_str = ','.join(operation_days) if operation_days else ''
@@ -50,7 +50,7 @@ def save_setting():
     operation_time_end = request.form['operation_time_end']
     ai_request_per_hour = int(request.form['ai_request_per_hour'])
     max_retry_attempts = int(request.form['max_retry_attempts'])
-    
+
     report_daily = 'report_daily' in request.form
     report_weekly = 'report_weekly' in request.form
     report_monthly = 'report_monthly' in request.form
