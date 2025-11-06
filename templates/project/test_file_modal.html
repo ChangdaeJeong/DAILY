@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Selection Modal Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Selection Modal Test Page</h1>
+        <button class="btn" id="openFileModalBtn">Open File Selection Modal</button>
+    </div>
+
+    {% include 'project/modals/file_selection_modal.html' %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const openFileModalBtn = document.getElementById('openFileModalBtn');
+            let originalFiles = []; // 원본 파일 목록을 저장할 변수
+
+            // 더미 데이터 (C 프로젝트 구조)
+            const dummyFiles = [
+                "src/folder_without_extension/file_in_folder",
+                "src/another_folder_no_ext",
+                "src/main.c",
+                "src/math/add.c",
+                "src/math/sub.c",
+                "src/data/config.json",
+                "src/data/data.txt",
+                "include/my_lib.h",
+                "include/another_lib.h",
+                "build/output/library.dll",
+                "config/settings.ini",
+                "config/log.conf",
+                "assets/image.png",
+                "assets/icon.ico",
+                "src/os/windows/syscalls.c",
+                "src/os/common/os_api.h",
+                "src/utils/logger.c",
+                "src/utils/logger.h",
+                "src/utils/memory.c",
+                "src/utils/memory.h",
+                "src/algorithms/sort.c",
+                "src/algorithms/search.c",
+                "src/algorithms/data_structures.h",
+                "tests/unit/test_logger.c",
+                "tests/unit/test_memory.c",
+                "tests/integration/test_network.c",
+                "tests/integration/test_database.c",
+                "docs/api_reference.md",
+                "docs/user_guide.pdf",
+                "docs/images/flowchart.png",
+                "docs/images/architecture.svg",
+                "tools/code_formatter.py",
+                "tools/static_analyzer.sh",
+                "firmware/main.hex",
+                "src/security/encryption.c",
+                "src/security/encryption.h",
+                "src/utils/time_utils.c",
+                "src/utils/time_utils.h",
+                "src/utils/string_utils.c",
+                "src/utils/string_utils.h",
+                "src/utils/file_io.c",
+                "src/utils/file_io.h",
+                "src/network/socket_api.c",
+                "src/network/socket_api.h",
+                "src/network/http_client.c",
+                "src/network/http_server.c",
+                "src/network/dns_resolver.c",
+                "src/database/sqlite_wrapper.c",
+                "src/database/sqlite_wrapper.h",
+                "src/database/postgres_connector.c",
+                "src/database/mysql_connector.c",
+                "src/ui/widgets/button.c",
+                "src/ui/widgets/textbox.c",
+                "src/ui/widgets/widget_api.h",
+                "src/ui/themes/dark_theme.css",
+                "src/ui/themes/light_theme.css",
+                "src/thirdparty/openssl/ssl_utils.h",
+                "src/drivers/ethernet/eth_driver.c",
+                "src/drivers/ethernet/eth_driver.h",
+                "src/drivers/spi/spi_driver.c",
+                "src/drivers/spi/spi_driver.h",
+                "src/os/freertos/task_management.c",
+                "src/os/freertos/queue_management.c",
+                "src/os/vxworks/task_management.c",
+                "src/os/vxworks/queue_management.c",
+                "src/algorithms/compression/lzma.c",
+                "src/algorithms/compression/zstd.c",
+                "src/algorithms/compression/compression_api.h",
+                "src/algorithms/encryption/chacha20.c",
+                "src/algorithms/encryption/poly1305.c",
+                "src/algorithms/encryption/encryption_api.h",
+                "tests/performance/test_network_perf.c",
+                "tests/performance/test_db_perf.c",
+                "tests/security/test_auth_vuln.c",
+                "tests/security/test_crypto_strength.c",
+                "docs/developer/getting_started.md",
+                "docs/developer/build_process.md",
+                "docs/contributing/guidelines.md",
+                "docs/contributing/code_of_conduct.md",
+                "tools/profiler/profiler.py",
+                "tools/debugger/debugger.c",
+                "firmware/main.hex",
+                "firmware/bootloader.bin",
+                "firmware/config.xml",
+                "data/large_dataset.bin",
+                "data/small_data.json",
+                "temp/cache/temp_file.tmp",
+                "temp/logs/app.log",
+                "vendor/boost/asio/include/asio.hpp",
+                "vendor/boost/asio/src/asio.cpp",
+                "resources/i18n/en_US.json",
+                "resources/i18n/ko_KR.json",
+                "resources/icons/app_icon.svg",
+                "resources/icons/folder_icon.svg",
+                "src/config/config_parser.c",
+                "src/config/config_parser.h",
+                "src/config/config_defaults.h",
+                "src/logging/log_manager.c",
+                "src/logging/log_manager.h",
+                "src/logging/log_levels.h",
+                "src/metrics/metric_collector.c",
+                "src/metrics/metric_collector.h",
+                "src/metrics/metric_types.h",
+                "src/plugins/plugin_manager.c",
+                "src/plugins/plugin_manager.h",
+                "src/plugins/example_plugin/example.c",
+                "src/plugins/example_plugin/example.h",
+                "src/plugins/example_plugin/plugin.json",
+                "src/serialization/serializer.c",
+                "src/serialization/serializer.h",
+                "src/serialization/deserializer.c",
+                "src/serialization/deserializer.h",
+                "src/utilities/hash_table.c",
+                "src/utilities/hash_table.h",
+            ];
+
+
+            window.addEventListener('click', function(event) {
+                if (event.target == fileSelectionModal) {
+                    window.hideFileSelectionModal(); // window 객체를 통해 접근
+                }
+            });
+
+            openFileModalBtn.addEventListener('click', function() {
+                showFileSelectionModal(dummyFiles);
+            });
+        });
+    </script>
+</body>
+</html>

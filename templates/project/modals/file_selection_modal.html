@@ -1,55 +1,259 @@
+<style>
+    /* Modal specific styles */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        align-items: center; /* Center vertically */
+        justify-content: center; /* Center horizontally */
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        max-width: 700px;
+        border-radius: 10px;
+        position: relative;
+    }
+
+    .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        position: absolute;
+        right: 20px;
+        top: 10px;
+    }
+
+    .close-button:hover,
+    .close-button:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    #file-selection-area {
+        margin-top: 20px;
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: left;
+    }
+
+    #file-list-modal {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        min-height: 400px;
+    }
+
+    .file-tree-item {
+        margin-left: 20px;
+        line-height: 1.8;
+    }
+
+    .file-tree-folder-header {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .folder-toggle {
+        display: inline-block;
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid #333;
+        margin-right: 5px;
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .folder-toggle-down {
+        transform: rotate(90deg);
+    }
+
+    .nested {
+        display: none;
+        list-style-type: none;
+        padding-left: 0;
+    }
+
+    .nested.active {
+        display: block;
+    }
+
+    .file-tree-file-item {
+        margin-left: 25px; /* Adjust for folder toggle */
+    }
+
+    .filter-controls {
+        margin-top: 15px;
+        padding: 10px;
+        border: 1px solid #eee;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        text-align: left;
+    }
+
+    .filter-controls label {
+        margin-right: 10px;
+    }
+
+    .filter-controls input[type="text"] {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        width: 150px;
+    }
+
+    .filter-controls button {
+        margin-left: 10px;
+        padding: 5px 10px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .filter-controls button:hover {
+        background-color: #5a6268;
+    }
+</style>
+
 <div id="fileSelectionModal" class="modal">
     <div class="modal-content">
         <span class="close-button" id="fileSelectionCloseButton">&times;</span>
         <h2>Select Files to Analyze</h2>
         <div id="file-selection-area">
+            <div class="filter-controls">
+                <label for="extensionInput">확장자 추가:</label>
+                <input type="text" id="extensionInput" placeholder=".c,.h,.py">
+                <button id="addExtensionTag">추가</button>
+                <div id="extensionTags" style="margin-top: 10px;"></div>
+                <button class="btn" id="excludeBinariesButton" style="background-color: #6c757d; margin-left: 0px;">Exclude Binaries</button>
+                <button class="btn" id="excludeNoExtensionButton" style="background-color: #6c757d; margin-left: 10px;">Exclude No Extension</button>
+            </div>
             <ul id="file-list-modal"></ul>
-            <button class="btn" id="save_selected_files_btn">Save Selected Files</button>
+            <div class="modal-footer-controls">
+                <div id="file-count-info" style="margin-right: auto;"></div>
+                <button class="btn" id="reset_filters_btn" style="background-color: #dc3545; margin-right: 10px;">리셋</button>
+                <button class="btn" id="save_selected_files_btn">Save</button>
+            </div>
         </div>
     </div>
 </div>
 
+<style>
+    .modal-footer-controls {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end; /* 버튼들을 오른쪽으로 정렬 */
+        margin-top: 15px;
+        padding: 10px 0;
+        border-top: 1px solid #eee;
+    }
+
+    #file-count-info {
+        font-weight: bold;
+        color: #333;
+        margin-right: auto; /* 파일 수 정보를 왼쪽으로 밀어냄 */
+    }
+</style>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const projectId = "{{ project.id | tojson }}";
+        document.addEventListener('DOMContentLoaded', function() {
+        const projectId = "{{ project.id if project.id is defined else '' }}"; // project.id가 정의되지 않았을 경우 빈 문자열로 초기화
 
         const fileSelectionModal = document.getElementById('fileSelectionModal');
         const fileSelectionCloseButton = document.getElementById('fileSelectionCloseButton');
         const fileListModal = document.getElementById('file-list-modal');
         const saveSelectedFilesBtn = document.getElementById('save_selected_files_btn');
+        const resetFiltersBtn = document.getElementById('reset_filters_btn');
 
-        function showFileSelectionModal() {
-            fileSelectionModal.style.display = 'flex';
+        // Filter controls
+        const excludeBinariesButton = document.getElementById('excludeBinariesButton');
+        const excludeNoExtensionButton = document.getElementById('excludeNoExtensionButton'); // 새로운 버튼 추가
+        const extensionInput = document.getElementById('extensionInput');
+        const addExtensionTagBtn = document.getElementById('addExtensionTag');
+        const extensionTagsContainer = document.getElementById('extensionTags');
+
+        let originalFiles = []; // 원본 파일 목록을 저장할 변수
+        let activeExtensionFilters = new Set(); // 활성화된 확장자 필터 목록
+
+        // 바이너리 파일 확장자 목록
+        const binaryExtensions = [
+            '.a', '.so', '.o', '.exe', '.dll', '.pdf', '.png', '.ico', '.bin', '.hex', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp',
+            '.mp3', '.wav', '.ogg', '.flac', '.aac', '.wma', '.m4a', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv',
+            '.zip', '.tar', '.gz', '.rar', '.7z', '.iso', '.img', '.dmg', '.deb', '.rpm', '.apk', '.ipa', '.jar', '.war', '.ear',
+            '.class', '.pyc', '.pyo', '.pyd', '.so', '.dylib', '.node', '.wasm', '.dat', '.db', '.sqlite', '.mdb', '.accdb',
+            '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp', '.rtf', '.woff', '.woff2', '.ttf', '.otf',
+            '.eot', '.svgz', '.svg', '.gz', '.bz2', '.xz', '.lz', '.lz4', '.lzo', '.z', '.cab', '.msi', '.dmg', '.pkg', '.app', '.ipa',
+            '.apk', '.xap', '.crx', '.safariextz', '.xpi', '.vsix', '.unitypackage', '.assetbundle', '.pak', '.vpk', '.wad',
+            '.smd', '.mdl', '.bsp', '.vtf', '.vmt', '.gcf', '.ncf', '.vpk', '.blob', '.dat', '.idx', '.pak', '.psd', '.ai', '.eps',
+            '.indd', '.cdr', '.skp', '.blend', '.max', '.obj', '.fbx', '.dae', '.3ds', '.stl', '.dwg', '.dxf', '.rvt', '.ifc',
+            '.kmz', '.kml', '.gpx', '.geojson', '.shp', '.dbf', '.shx', '.prj', '.cpg', '.sbn', '.sbx', '.fbn', '.fbx', '.gdb',
+            '.mxd', '.sde', '.lyr', '.sdc', '.sid', '.jp2', '.ecw', '.img', '.hdr', '.asc', '.grd', '.dem', '.tif', '.geotiff',
+            '.hgt', '.las', '.laz', '.pcd', '.ply', '.obj', '.mtl', '.bin', '.pbf', '.osm', '.gml', '.kml', '.geojson', '.topojson',
+            '.tfw', '.wld', '.prj', '.cpg', '.qpj', '.aux', '.xml', '.fgb', '.gpkg', '.mbtiles', '.vrt', '.gdal', '.ovr', '.rrd',
+            '.sqlite-wal', '.sqlite-shm', '.bak', '.tmp', '.temp', '.log', '.old', '.orig', '.rej', '.swp', '.swo', '.swn', '.sps',
+            '.spt', '.spsave', '.spv', '.spp', '.spsx', '.spu', '.spc', '.spd', '.spe', '.spf', '.spg', '.sph', '.spi', '.spj',
+            '.spk', '.spl', '.spm', '.spn', '.spo', '.spp', '.spq', '.spr', '.sps', '.spt', '.spu', '.spv', '.spw', '.spx', '.spy',
+            '.spz', '.spsave', '.spv', '.spp', '.spsx', '.spu', '.spc', '.spd', '.spe', '.spf', '.spg', '.sph', '.spi', '.spj',
+            '.spk', '.spl', '.spm', '.spn', '.spo', '.spp', '.spq', '.spr', '.sps', '.spt', '.spu', '.spv', '.spw', '.spx', '.spy',
+            '.spz'
+        ];
+
+        function getFileExtension(filename) {
+            const lastDotIndex = filename.lastIndexOf('.');
+            if (lastDotIndex === -1) return '';
+            return filename.substring(lastDotIndex);
         }
 
-        function hideFileSelectionModal() {
-            fileSelectionModal.style.display = 'none';
+        function isBinaryFile(filename) {
+            const ext = getFileExtension(filename).toLowerCase();
+            return binaryExtensions.includes(ext);
         }
-
-        fileSelectionCloseButton.addEventListener('click', hideFileSelectionModal);
-
-        window.addEventListener('click', function(event) {
-            if (event.target == fileSelectionModal) {
-                hideFileSelectionModal();
-            }
-        });
 
         // Custom event listener for showing file selection modal
         window.addEventListener('showFileSelectionModal', function(event) {
-            displayFilesForSelection(event.detail.files);
+            window.showFileSelectionModal(event.detail.files);
         });
 
         function buildFileTree(files) {
             const tree = {};
+            const fileSet = new Set(files); // 모든 파일 경로를 Set에 저장하여 빠른 검색 가능하게 함
+
             files.forEach(file => {
                 const parts = file.split(/[\\/]/);
                 let currentLevel = tree;
+                let currentPath = ''; // 현재까지의 경로를 추적
+
                 parts.forEach((part, index) => {
-                    if (index === parts.length - 1) { // 마지막 부분은 파일 또는 빈 폴더
-                        if (file.indexOf('.') !== -1) { // 파일인 경우
+                    if (index > 0) {
+                        currentPath += '/';
+                    }
+                    currentPath += part;
+
+                    if (index === parts.length - 1) { // 마지막 부분
+                        // 현재 part가 실제 파일 경로의 마지막 부분이고, 해당 경로가 fileSet에 존재하면 파일로 간주
+                        if (fileSet.has(file)) {
                             currentLevel[part] = file; // 파일 경로 문자열 저장
-                        } else { // 마지막 부분인데 확장자가 없으면 폴더로 간주
-                            if (!currentLevel[part]) { // 이미 존재하지 않으면 빈 객체로 초기화
+                        } else { // 실제 파일이 아니거나, 확장자가 없는 폴더인 경우
+                            if (!currentLevel[part]) {
                                 currentLevel[part] = {};
                             }
                         }
@@ -67,6 +271,49 @@
             return tree;
         }
 
+        function updateParentCheckboxState(ulElement) {
+            const parentLi = ulElement.closest('li.file-tree-folder');
+            if (!parentLi) return; // 최상위 ul이면 종료
+
+            const parentCheckbox = parentLi.querySelector('.file-tree-folder-header input[type="checkbox"]');
+            const folderNameSpan = parentLi.querySelector('.file-tree-folder-header .folder-name');
+            const folderKey = parentCheckbox.dataset.folderName; // 폴더 이름 가져오기
+
+            // 현재 ulElement (즉, parentLi의 nestedUl) 내의 모든 하위 파일 체크박스를 세어 상태를 결정
+            const allChildFileCheckboxes = ulElement.querySelectorAll('input[type="checkbox"][value]');
+            const allCheckedChildFileCheckboxes = ulElement.querySelectorAll('input[type="checkbox"][value]:checked');
+
+            if (allChildFileCheckboxes.length === 0) {
+                parentCheckbox.indeterminate = false;
+                parentCheckbox.checked = false;
+            } else if (allCheckedChildFileCheckboxes.length === 0) {
+                parentCheckbox.checked = false;
+                parentCheckbox.indeterminate = false;
+            } else if (allCheckedChildFileCheckboxes.length === allChildFileCheckboxes.length) {
+                parentCheckbox.checked = true;
+                parentCheckbox.indeterminate = false;
+            } else {
+                parentCheckbox.checked = false;
+                parentCheckbox.indeterminate = true;
+            }
+
+            // 폴더 이름 옆에 파일 수 표시
+            folderNameSpan.textContent = `${folderKey} (${allCheckedChildFileCheckboxes.length}/${allChildFileCheckboxes.length})`;
+
+            // 상위 폴더의 상태도 업데이트
+            const grandParentUl = parentLi.parentNode.closest('ul');
+            if (grandParentUl && grandParentUl.id !== 'file-list-modal') { // 최상위 ul이 아니면 계속 업데이트
+                updateParentCheckboxState(grandParentUl);
+            } else {
+                const fileCountInfo = document.getElementById('file-count-info');
+                if (fileCountInfo) {
+                    const totalFiles = fileListModal.querySelectorAll('input[type="checkbox"][value]').length;
+                    const selectedFiles = fileListModal.querySelectorAll('input[type="checkbox"][value]:checked').length;
+                    fileCountInfo.textContent = `Selected Files: ${selectedFiles} / ${totalFiles}`;
+                }
+            }
+        }
+
         function renderFileTree(node, parentUl) {
             for (const key in node) {
                 const value = node[key];
@@ -74,8 +321,18 @@
 
                 if (typeof value === 'string') { // 파일인 경우
                     li.className = 'file-tree-item file-tree-file-item'; // 파일에 대한 클래스 추가
-                    li.innerHTML = `<input type="checkbox" value="${value}"> ${key}`;
+                    li.innerHTML = `<input type="checkbox" value="${value}" id="file-checkbox-${value.replace(/[^a-zA-Z0-9]/g, '')}"> ${key}`;
                     parentUl.appendChild(li); // 파일을 부모 ul에 직접 추가
+
+                    // Add click listener to the li element to toggle its checkbox
+                    li.addEventListener('click', function(event) {
+                        const checkbox = this.querySelector('input[type="checkbox"]');
+                        if (event.target !== checkbox) { // 체크박스 자체가 클릭된 것이 아니면 토글
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        // 파일 체크박스 변경 시 부모 폴더의 상태를 업데이트
+                        updateParentCheckboxState(this.closest('ul'));
+                    });
                 } else { // 폴더인 경우
                     li.className = 'file-tree-item file-tree-folder'; // 폴더에 대한 클래스 추가
                     
@@ -85,6 +342,7 @@
                     const folderCheckbox = document.createElement('input');
                     folderCheckbox.type = 'checkbox';
                     folderCheckbox.dataset.folderName = key; // 데이터 속성으로 폴더 이름 저장
+                    folderCheckbox.id = `folder-checkbox-${key.replace(/[^a-zA-Z0-9]/g, '')}`;
                     folderHeader.appendChild(folderCheckbox);
 
                     const folderToggle = document.createElement('span');
@@ -96,23 +354,53 @@
                     folderName.textContent = key;
                     folderHeader.appendChild(folderName);
 
+                    folderName.addEventListener('click', function(event) {
+                        event.stopPropagation(); 
+                        const folderToggleSpan = this.parentNode.querySelector('.folder-toggle');
+                        if (folderToggleSpan) {
+                            folderToggleSpan.click();
+                        }
+                    });
+
                     li.appendChild(folderHeader);
 
+                    folderHeader.addEventListener('click', function(event) {
+                        const checkbox = this.querySelector('input[type="checkbox"]');
+                        if (event.target !== checkbox && !event.target.classList.contains('folder-toggle')) {
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        // 폴더 체크박스 변경 시 하위 체크박스 및 부모 상태 업데이트
+                        const isChecked = checkbox.checked;
+                        const nestedUl = this.closest('li.file-tree-folder').querySelector('.nested');
+                        if (nestedUl) {
+                            nestedUl.querySelectorAll('input[type="checkbox"]').forEach(childCheckbox => {
+                                childCheckbox.checked = isChecked;
+                            });
+                        }
+                        updateParentCheckboxState(this.closest('ul'));
+                    });
+
                     const nestedUl = document.createElement('ul');
-                    nestedUl.className = 'nested';
+                    nestedUl.className = 'nested active'; // 모든 트리는 열린 상태
                     li.appendChild(nestedUl);
 
+                    folderToggle.className = 'folder-toggle folder-toggle-down'; // 토글 아이콘도 아래를 가리키도록
                     folderToggle.addEventListener('click', function() {
                         this.classList.toggle('folder-toggle-down');
                         nestedUl.classList.toggle('active');
                     });
 
                     folderCheckbox.addEventListener('change', function() {
+                        // 이 리스너는 이제 folderHeader의 클릭 리스너에서 직접 처리되므로 필요 없음
+                        // 하지만 혹시 모를 직접적인 change 이벤트에 대비하여 남겨둠
                         const isChecked = this.checked;
-                        // 하위의 모든 체크박스 (파일 및 폴더) 선택/해제
-                        nestedUl.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                            checkbox.checked = isChecked;
-                        });
+                        const nestedUl = this.closest('li.file-tree-folder').querySelector('.nested');
+                        if (nestedUl) {
+                            nestedUl.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                                checkbox.checked = isChecked;
+                            });
+                        }
+                        updateParentCheckboxState(this.closest('ul'));
                     });
 
                     renderFileTree(value, nestedUl); // 하위 항목을 nestedUl에 렌더링
@@ -121,11 +409,63 @@
             }
         }
 
-        function displayFilesForSelection(files) {
-            fileListModal.innerHTML = '';
-            const fileTree = buildFileTree(files);
+        window.showFileSelectionModal = function(filesToDisplay) {
+            originalFiles = filesToDisplay; // 원본 파일 목록 저장
+            fileListModal.innerHTML = ''; // 모달 열릴 때 파일 목록 초기화
+            const fileTree = buildFileTree(originalFiles); // 원본 파일로 트리 한 번만 렌더링
             renderFileTree(fileTree, fileListModal);
-            showFileSelectionModal(); // 파일 선택 모달 표시
+
+            // 바이너리 제외 버튼은 초기 체크 상태가 없으므로 이 로직 제거
+            applyFiltersAndUpdateCheckboxes(); // 초기 필터 적용 (확장자 필터만)
+            fileListModal.querySelectorAll(':scope > li.file-tree-folder').forEach(li => { updateParentCheckboxState(li.querySelector('.nested')); }); // 모든 파일 렌더링 및 필터 적용 후 전체 체크박스 상태 업데이트
+
+            fileSelectionModal.style.display = 'flex';
+        }
+
+        window.hideFileSelectionModal = function() {
+            fileSelectionModal.style.display = 'none';
+        }
+
+        fileSelectionCloseButton.addEventListener('click', hideFileSelectionModal);
+
+        function applyFiltersAndUpdateCheckboxes() {
+            const excludedDirs = ['node_modules', 'venv', '__pycache__', '.git', 'dist', 'build', 'static', 'templates', 'router'];
+            const excludedFilePatterns = [/\.log$/, /\.tmp$/, /\.swp$/, /\.bak$/, /\.gitignore$/, /\.DS_Store$/];
+
+            fileListModal.querySelectorAll('input[type="checkbox"][value]').forEach(checkbox => {
+                const filePath = checkbox.value;
+                let shouldBeChecked = true;
+
+                // 1. 불필요한 파일 필터링 (기존 로직 유지)
+                const parts = filePath.split(/[\\/]/);
+                if (parts.some(part => excludedDirs.includes(part))) {
+                    shouldBeChecked = false;
+                }
+                if (filePath.indexOf('.') !== -1) {
+                    if (excludedFilePatterns.some(pattern => pattern.test(filePath))) {
+                        shouldBeChecked = false;
+                    }
+                }
+
+                // 2. 확장자 없는 파일 제외 (초기 설정)
+                if (shouldBeChecked && getFileExtension(filePath) === '') {
+                    shouldBeChecked = false;
+                }
+
+                // 3. 확장자 태그 필터 적용 (바이너리 제외는 이제 버튼으로 처리)
+                if (shouldBeChecked && activeExtensionFilters.size > 0) {
+                    const ext = getFileExtension(filePath).toLowerCase();
+                    if (!activeExtensionFilters.has(ext)) {
+                        shouldBeChecked = false;
+                    }
+                }
+                
+                // 체크박스 상태 업데이트
+                checkbox.checked = shouldBeChecked;
+                // checkbox.dispatchEvent(new Event('change')); // 부모 폴더 상태 업데이트를 위해 change 이벤트 발생 (이제 필요 없음)
+            });
+
+            fileListModal.querySelectorAll(':scope > li.file-tree-folder').forEach(li => { updateParentCheckboxState(li.querySelector('.nested')); }); // 전체 폴더 상태 업데이트 (모든 파일 체크박스 업데이트 후 한 번만 호출)
         }
 
         saveSelectedFilesBtn.addEventListener('click', async function() {
@@ -139,42 +479,135 @@
             }
 
             hideFileSelectionModal(); // 파일 선택 모달 숨기기
-            // Custom event to trigger init modal for progress log
-            const event = new CustomEvent('showInitModalForProgress');
-            window.dispatchEvent(event);
 
-            // This part needs to be handled by init_modal.html's script
-            // const progressBar = document.getElementById('progressBar');
-            // progressBar.style.width = '100%';
-            // progressBar.textContent = `100% - ${steps[steps.length - 1]} 완료!`; // 마지막 스텝 메시지 사용
-
-            try {
-                const response = await fetch(`/project/init/step`, { // Step 7 API call
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ project_id: projectId, step: 6, selected_files: selectedFiles })
-                });
-                const data = await response.json();
+            if (projectId) { // projectId가 유효할 때만 API 호출
+                // Custom event to trigger init modal for progress log
+                const event = new CustomEvent('showInitModalForProgress');
+                window.dispatchEvent(event);
 
                 // This part needs to be handled by init_modal.html's script
-                // progressLog.innerHTML += `<p>${data.msg}</p>`;
+                // const progressBar = document.getElementById('progressBar');
+                // progressBar.style.width = '100%';
+                // progressBar.textContent = `100% - ${steps[steps.length - 1]} 완료!`; // 마지막 스텝 메시지 사용
 
-                if (data.success) {
-                    alert('파일 전송 및 초기화 완료!');
-                    // hideInitModal(); // This needs to be handled by init_modal.html's script
-                    window.location.reload();
-                } else {
-                    alert('파일 전송 실패: ' + data.msg);
+                try {
+                    const response = await fetch(`/project/init/step`, { // Step 7 API call
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ project_id: projectId, step: 6, selected_files: selectedFiles })
+                    });
+                    const data = await response.json();
+
+                    // This part needs to be handled by init_modal.html's script
+                    // progressLog.innerHTML += `<p>${data.msg}</p>`;
+
+                    if (data.success) {
+                        alert('파일 전송 및 초기화 완료!');
+                        // hideInitModal(); // This needs to be handled by init_modal.html's script
+                        window.location.reload();
+                    } else {
+                        alert('파일 전송 실패: ' + data.msg);
+                        // hideInitModal(); // This needs to be handled by init_modal.html's script
+                    }
+                } catch (error) {
+                    console.error('Error sending selected files:', error);
+                    // progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`; // This needs to be handled by init_modal.html's script
+                    alert('파일 전송 중 예상치 못한 오류가 발생했습니다.');
                     // hideInitModal(); // This needs to be handled by init_modal.html's script
                 }
-            } catch (error) {
-                console.error('Error sending selected files:', error);
-                // progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`; // This needs to be handled by init_modal.html's script
-                alert('파일 전송 중 예상치 못한 오류가 발생했습니다.');
-                // hideInitModal(); // This needs to be handled by init_modal.html's script
+            } else {
+                alert('프로젝트 ID가 없어 파일을 저장할 수 없습니다. 테스트 페이지에서는 파일 저장 기능이 비활성화됩니다.');
+                // 테스트 페이지에서는 파일 저장 후 새로고침 등의 동작이 필요 없으므로 추가적인 처리는 하지 않습니다.
             }
+        });
+
+        // 바이너리 제외 버튼 클릭 시 동작
+        excludeBinariesButton.addEventListener('click', function() {
+            fileListModal.querySelectorAll('input[type="checkbox"][value]').forEach(checkbox => {
+                const filePath = checkbox.value;
+                if (isBinaryFile(filePath) && checkbox.checked) {
+                    checkbox.checked = false; // 바이너리 파일만 체크 해제
+                }
+            });
+            fileListModal.querySelectorAll(':scope > li.file-tree-folder').forEach(li => { updateParentCheckboxState(li.querySelector('.nested')); }); // 전체 폴더 상태 업데이트
+        });
+
+        // 확장자 없는 파일 제외 버튼 클릭 시 동작
+        excludeNoExtensionButton.addEventListener('click', function() {
+            fileListModal.querySelectorAll('input[type="checkbox"][value]').forEach(checkbox => {
+                const filePath = checkbox.value;
+                if (getFileExtension(filePath) === '' && checkbox.checked) { // 확장자가 없는 파일만 체크 해제
+                    checkbox.checked = false;
+                }
+            });
+            fileListModal.querySelectorAll(':scope > li.file-tree-folder').forEach(li => { updateParentCheckboxState(li.querySelector('.nested')); }); // 전체 폴더 상태 업데이트
+        });
+
+        // 확장자 태그 추가
+        function addExtensionTag(extension) {
+            extension = extension.toLowerCase();
+            if (!extension.startsWith('.')) {
+                extension = '.' + extension;
+            }
+            if (activeExtensionFilters.has(extension)) {
+                return; // 이미 추가된 확장자는 무시
+            }
+
+            activeExtensionFilters.add(extension);
+
+            const tagSpan = document.createElement('span');
+            tagSpan.className = 'extension-tag';
+            tagSpan.textContent = extension;
+            tagSpan.style.cssText = `
+                display: inline-block;
+                background-color: #e0e0e0;
+                padding: 5px 10px;
+                border-radius: 5px;
+                margin-right: 5px;
+                margin-bottom: 5px;
+                cursor: pointer;
+            `;
+            tagSpan.dataset.extension = extension; // 데이터 속성으로 확장자 저장
+
+            tagSpan.addEventListener('click', function() {
+                // 태그 클릭 시 제거 및 필터 해제
+                activeExtensionFilters.delete(extension);
+                extensionTagsContainer.removeChild(tagSpan);
+                applyFiltersAndUpdateCheckboxes(); // 필터 다시 적용
+            });
+
+            extensionTagsContainer.appendChild(tagSpan);
+            extensionInput.value = ''; // 입력 필드 초기화
+            applyFiltersAndUpdateCheckboxes(); // 필터 다시 적용
+        }
+
+        addExtensionTagBtn.addEventListener('click', function() {
+            const extension = extensionInput.value.trim();
+            if (extension) {
+                addExtensionTag(extension);
+            }
+        });
+
+        extensionInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                const extension = extensionInput.value.trim();
+                if (extension) {
+                    addExtensionTag(extension);
+                }
+            }
+        });
+
+        // 리셋 버튼 기능
+        resetFiltersBtn.addEventListener('click', function() {
+            activeExtensionFilters.clear(); // 확장자 필터 초기화
+            extensionTagsContainer.innerHTML = ''; // 확장자 태그 UI 초기화
+            // 모든 파일 체크박스를 다시 선택 상태로 만듭니다.
+            fileListModal.querySelectorAll('input[type="checkbox"][value]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            fileListModal.querySelectorAll(':scope > li.file-tree-folder').forEach(li => { updateParentCheckboxState(li.querySelector('.nested')); }); // 전체 폴더 상태 업데이트
         });
     });
 </script>

@@ -1,7 +1,9 @@
 import os
 import shutil
 import sys
+import re # re 모듈 추가
 from flask import current_app, render_template, Blueprint, request, redirect, url_for, session, jsonify
+from lib.decorator import require_debug_mode
 import lib.mysql_db as mysql_db
 
 # run_if.py를 임포트하기 위해 app.py가 있는 디렉토리를 sys.path에 추가
@@ -327,6 +329,68 @@ def init_page(project_id):
         if conn:
             mysql_db.close_conn(conn)
 
+
+@project_bp.route('/test/file_modal/<int:project_id>', methods=['GET'])
+@require_debug_mode
+def test_file_modal(project_id):
+    conn = None
+    cursor = None
+    user_data = session.get('user', {})
+    logged_in_user_id = user_data.get('user', {}).get('id')
+
+    try:
+        conn = mysql_db.get_conn()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM daily_db_projects WHERE id = %s", (project_id,))
+        project = cursor.fetchone()
+
+        if not project:
+            return "Project not found", 404
+
+        # 프로젝트 소유자 확인
+        if project['user_id'] != logged_in_user_id:
+            return "Access Denied: You do not own this project.", 403
+
+        return render_template('project/test_file_modal.html', project=project)
+    except Exception as e:
+        print(f"Error fetching project details: {e}")
+        return "Error loading project details", 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            mysql_db.close_conn(conn)
+
+def _get_file_extension(filename):
+    _, ext = os.path.splitext(filename)
+    return ext.lower()
+
+def _get_filtered_project_files(project_root_dir):
+    full_path = os.path.join('workspace', project_root_dir)
+    files_in_project = []
+    
+    excluded_dirs = ['node_modules', 'venv', '__pycache__', '.git', 'dist', 'build', 'static', 'templates', 'router']
+    excluded_file_patterns = [r'\.log$', r'\.tmp$', r'\.swp$', r'\.bak$', r'\.gitignore$', r'\.DS_Store$', r'DailyProjectInterface\.py$'] # DailyProjectInterface.py 추가
+
+    try:
+        for root, dirs, files in os.walk(full_path):
+            dirs[:] = [d for d in dirs if d not in excluded_dirs]
+
+            for file in files:
+                relative_path = os.path.relpath(os.path.join(root, file), full_path)
+                
+                if any(re.search(pattern, relative_path) for pattern in excluded_file_patterns):
+                    continue
+                
+                if _get_file_extension(file) == '':
+                    continue
+
+                files_in_project.append(relative_path)
+        return files_in_project
+    except Exception as e:
+        current_app.logger.error(f"프로젝트 파일 목록 필터링 중 오류 발생: {e}", exc_info=True)
+        raise e # 예외를 다시 발생시켜 상위 호출자가 처리하도록 함
+
 @project_bp.route('/init/step', methods=['POST'])
 def initialize():
     conn = None
@@ -395,34 +459,68 @@ def initialize():
             else:
                 return jsonify(success=False, msg=result['msg']+'\n 프로젝트 실행 실패.', stdout=result['stdout'], stderr=result['stderr'])
         elif step == 5: # 프로젝트 하위 파일 검색
-            full_path = os.path.join('workspace', project_root_dir)
-            files_in_project = []
             try:
-                for root, _, files in os.walk(full_path):
-                    for file in files:
-                        relative_path = os.path.relpath(os.path.join(root, file), full_path)
-                        files_in_project.append(relative_path)
+                files_in_project = _get_filtered_project_files(project_root_dir)
                 return jsonify(success=True, msg="프로젝트 하위 파일 검색 완료.", files=files_in_project, next_step=6)
             except Exception as e:
                 return jsonify(success=False, msg=f"프로젝트 하위 파일 검색 중 오류 발생: {e}")
-        elif step == 6: # 선택된 파일 서버로 전송
-            # selected_files = request.json.get('selected_files', []) # 현재 단계에서는 사용하지 않음
+        elif step == 6: # 선택된 파일 서버로 전송 및 DB 저장
+            selected_files = request.json.get('selected_files', [])
+            
+            # 1. 클라이언트단에서 전달된 파일 리스트를 받아 각 파일들이 존재하는지 체크
+            # _get_filtered_project_files 함수를 사용하여 필터링된 전체 프로젝트 파일 목록을 가져옴
             try:
-                # 모든 스텝 완료 후 프로젝트 상태를 'init'으로 변경
-                cursor.execute("UPDATE daily_db_projects SET state = 'init' WHERE id = %s", (project_id,))
-                conn.commit()
-                return jsonify(success=True, msg="선택된 파일 전송 및 프로젝트 초기화 완료!")#, redirect_url=url_for('main.project.project_detail_page', project_id=project_id))
+                all_project_files_filtered = set(_get_filtered_project_files(project_root_dir))
             except Exception as e:
-                return jsonify(success=False, msg=f"프로젝트 상태 업데이트 중 오류 발생: {e}")
+                conn.rollback()
+                current_app.logger.error(f"프로젝트 파일 목록 스캔 중 오류 발생: {e}", exc_info=True)
+                return jsonify(success=False, msg=f"프로젝트 파일 목록 스캔 중 오류 발생: {e}"), 500
+
+            # 클라이언트에서 전달된 selected_files를 서버에서 다시 필터링
+            filtered_selected_files_for_db = []
+            for file_path in selected_files:
+                # _get_filtered_project_files에서 이미 필터링된 목록에 있는지 확인
+                if file_path not in all_project_files_filtered:
+                    conn.rollback()
+                    return jsonify(success=False, msg=f"파일을 찾을 수 없습니다: {file_path} 또는 필터링 규칙에 의해 제외됨"), 400
+                filtered_selected_files_for_db.append(file_path)
+
+            try:
+                # 2. transaction 시작 (이미 conn이 트랜잭션 모드이므로 별도 시작 구문 불필요)
+                # 3. projects 테이블에서 사용자 id와 project id가 일치하는 레코드의 batch 정보를 +1해서 저장하고, 그 값을 가져온다.
+                #    만약 업데이트가 발생하지 않은 경우 (없는 경우) 에러 반환, 롤백
+                cursor.execute(
+                    "UPDATE daily_db_projects SET batch = batch + 1 WHERE id = %s AND user_id = %s",
+                    (project_id, logged_in_user_id)
+                )
+                if cursor.rowcount == 0:
+                    conn.rollback()
+                    return jsonify(success=False, msg="프로젝트를 찾을 수 없거나 소유자가 일치하지 않습니다."), 404
+                
+                cursor.execute("SELECT batch FROM daily_db_projects WHERE id = %s", (project_id,))
+                new_batch = cursor.fetchone()['batch']
+
+                # 4. 가져온 batch 값을 이용하여 daily_db_project_files에 모두 추가한다. 실패하면 rollback
+                if filtered_selected_files_for_db: # 필터링된 파일 목록 사용
+                    file_insert_query = "INSERT INTO daily_db_project_files (prj_id, batch, filepath, result) VALUES (%s, %s, %s, %s)"
+                    file_records = [(project_id, new_batch, file_path, 'Queued') for file_path in filtered_selected_files_for_db]
+                    cursor.executemany(file_insert_query, file_records)
+
+                # 5. 작업이 완료되면, projects 테이블에서 state를 init으로 변경한다. 실패하면 rollback
+                cursor.execute("UPDATE daily_db_projects SET state = 'init' WHERE id = %s", (project_id,))
+                
+                # 6. transaction end 및 응답 반환
+                conn.commit()
+                return jsonify(success=True, msg="선택된 파일 전송 및 프로젝트 초기화 완료!", next_step=7) # next_step 7은 완료를 의미
+            except Exception as e:
+                conn.rollback()
+                current_app.logger.error(f"프로젝트 초기화 중 오류 발생 (step 6): {e}", exc_info=True)
+                return jsonify(success=False, msg=f"프로젝트 초기화 중 오류 발생: {e}"), 500
         else:
             return jsonify(success=False, msg="유효하지 않은 초기화 단계입니다."), 400
 
     except Exception as e:
-        print(f"프로젝트 초기화 중 오류 발생: {e}")
-        return jsonify(success=False, msg=f"프로젝트 초기화 중 오류 발생: {e}"), 500
-
-    except Exception as e:
-        print(f"프로젝트 초기화 중 오류 발생: {e}")
+        current_app.logger.error(f"프로젝트 초기화 중 오류 발생: {e}", exc_info=True)
         return jsonify(success=False, msg=f"프로젝트 초기화 중 오류 발생: {e}"), 500
     finally:
         if cursor:
