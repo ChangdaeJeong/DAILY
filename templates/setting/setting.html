@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAILY - 설정</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/loading.js') }}"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    {% include 'util/loading.html' %}
+    {% include 'nav/navbar.html' %}
+
+    <div class="container-fluid d-flex">
+        {% include 'nav/sidebar.html' with context %}
+        <div class="main-content">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">설정</h1>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="alert-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('main.setting.save_setting') }}" method="POST">
+                <div class="card mb-4">
+                    <div class="card-header">설정</div>
+                    <div class="card-body">
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-md-3 col-form-label">동작 시간 설정</label>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap align-items-center">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_sun" name="operation_days" value="Sun" {% if setting_config and 'Sun' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_sun">일</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_mon" name="operation_days" value="Mon" {% if setting_config and 'Mon' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_mon">월</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_tue" name="operation_days" value="Tue" {% if setting_config and 'Tue' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_tue">화</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_wed" name="operation_days" value="Wed" {% if setting_config and 'Wed' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_wed">수</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_thu" name="operation_days" value="Thu" {% if setting_config and 'Thu' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_thu">목</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_fri" name="operation_days" value="Fri" {% if setting_config and 'Fri' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_fri">금</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="day_sat" name="operation_days" value="Sat" {% if setting_config and 'Sat' in setting_config.operation_days.split(',') %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_sat">토</label>
+                                    </div>
+                                    <div class="d-flex mt-2">
+                                        <input type="time" class="form-control me-2" id="operation_time_start" name="operation_time_start" value="{{ setting_config.operation_time_start if setting_config and setting_config.operation_time_start else '09:00' }}" required style="width: 180px;">
+                                        <span>~</span>
+                                        <input type="time" class="form-control ms-2" id="operation_time_end" name="operation_time_end" value="{{ setting_config.operation_time_end if setting_config and setting_config.operation_time_end else '18:00' }}" required style="width: 180px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+
+                        <div class="row mb-3 align-items-center">
+                            <label for="ai_request_per_hour" class="col-md-3 col-form-label">시간당 AI 요청 처리 횟수</label>
+                            <div class="col-md-7">
+                                <input type="range" class="form-range" id="ai_request_per_hour" name="ai_request_per_hour" min="5" max="30" step="5" value="{{ setting_config.ai_request_per_hour if setting_config else 5 }}">
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <span id="ai_request_value">{{ setting_config.ai_request_per_hour if setting_config else 5 }}</span>회
+                            </div>
+                        </div>
+                        <hr class="my-2">
+
+                        <div class="row mb-3 align-items-center">
+                            <label for="max_retry_attempts" class="col-md-3 col-form-label">최대 수정 시도 횟수</label>
+                            <div class="col-md-7">
+                                <input type="range" class="form-range" id="max_retry_attempts" name="max_retry_attempts" min="1" max="5" step="1" value="{{ setting_config.max_retry_attempts if setting_config else 1 }}">
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <span id="max_retry_value">{{ setting_config.max_retry_attempts if setting_config else 1 }}</span>회
+                            </div>
+                        </div>
+                        <hr class="my-2">
+
+                        <div class="row mb-3 align-items-center">
+                            <label class="col-md-3 col-form-label">Report 기능</label>
+                            <div class="col-md-9">
+                                <div class="d-flex flex-wrap align-items-center">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="report_daily" name="report_daily" {% if setting_config and setting_config.report_daily %}checked{% endif %}>
+                                        <label class="form-check-label" for="report_daily">Daily</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="report_weekly" name="report_weekly" {% if setting_config and setting_config.report_weekly %}checked{% endif %}>
+                                        <label class="form-check-label" for="report_weekly" title="매주 월요일에 발송">Weekly</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="report_monthly" name="report_monthly" {% if setting_config and setting_config.report_monthly %}checked{% endif %}>
+                                        <label class="form-check-label" for="report_monthly" title="매월 첫 번째 월요일에 발송">Monthly</label>
+                                    </div>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <label for="report_send_time" class="form-label me-2 mb-0">발송 시간</label>
+                                        <input type="time" class="form-control" id="report_send_time" name="report_send_time" value="{{ setting_config.report_send_time if setting_config and setting_config.report_send_time else '09:00' }}" style="width: 180px;">
+                                    </div>
+                                </div>
+                                <p id="report_description" class="text-muted mt-2 mb-0"></p>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+
+                        <div class="row mb-3 align-items-center">
+                            <label for="report_recipients" class="col-md-3 col-form-label">Report 수신인 리스트</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="report_recipients" name="report_recipients" value="{{ setting_config.report_recipients if setting_config else '' }}" placeholder="콤마로 구분하여 입력">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">설정 저장</button>
+            </form>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const aiRequestRange = document.getElementById('ai_request_per_hour');
+        const aiRequestValue = document.getElementById('ai_request_value');
+        aiRequestRange.addEventListener('input', function() {
+            aiRequestValue.textContent = this.value;
+        });
+
+        const maxRetryRange = document.getElementById('max_retry_attempts');
+        const maxRetryValue = document.getElementById('max_retry_value');
+        maxRetryRange.addEventListener('input', function() {
+            maxRetryValue.textContent = this.value;
+        });
+
+        // Report description logic
+        const reportDaily = document.getElementById('report_daily');
+        const reportWeekly = document.getElementById('report_weekly');
+        const reportMonthly = document.getElementById('report_monthly');
+        const reportDescription = document.getElementById('report_description');
+
+        function updateReportDescription() {
+            const descriptions = [];
+            if (reportDaily.checked) {
+                descriptions.push("매일");
+            }
+            if (reportWeekly.checked) {
+                descriptions.push("매주 월요일");
+            }
+            if (reportMonthly.checked) {
+                descriptions.push("매월 첫 번째 월요일");
+            }
+
+            if (descriptions.length > 0) {
+                reportDescription.textContent = descriptions.join(', ') + " 발송됩니다.";
+            } else {
+                reportDescription.textContent = "";
+            }
+        }
+
+        reportDaily.addEventListener('change', updateReportDescription);
+        reportWeekly.addEventListener('change', updateReportDescription);
+        reportMonthly.addEventListener('change', updateReportDescription);
+
+        // Initial update
+        updateReportDescription();
+
+        // Flash message auto-hide logic
+        const alertContainers = document.querySelectorAll('.alert-container');
+        alertContainers.forEach(container => {
+            const alerts = container.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000); // 5초 후 사라짐
+            });
+        });
+    });
+</script>
+</body>
+</html>

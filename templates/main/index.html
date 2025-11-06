@@ -21,18 +21,61 @@
             </div>
             <div class="feed-section">
                 <h2>Recent Activities</h2>
-                <div class="feed-item">
-                    <h3>Project Alpha - Analysis Completed</h3>
-                    <p>Analysis for Project Alpha finished successfully. <a href="#">View Report</a></p>
-                    <span class="timestamp">2 hours ago</span>
+                <div id="activities-list">
+                    <!-- Activities will be loaded here by JavaScript -->
                 </div>
-                <div class="feed-item">
-                    <h3>Project Beta - New Request</h3>
-                    <p>A new analysis request has been added for Project Beta. <a href="#">View Request</a></p>
-                    <span class="timestamp">5 hours ago</span>
-                </div>
+                <button id="load-more-activities" class="btn btn-secondary" style="display: none;">Load More</button>
             </div>
         </div>
     </div>
+
+    <script>
+        let offset = 0;
+        const limit = 7;
+        const activitiesList = document.getElementById('activities-list');
+        const loadMoreButton = document.getElementById('load-more-activities');
+
+        async function fetchActivities() {
+            try {
+                const response = await fetch(`/message/get_recent_activities?limit=${limit}&offset=${offset}`);
+                const messages = await response.json();
+
+                if (messages.length > 0) {
+                    messages.forEach(msg => {
+                        const feedItem = document.createElement('div');
+                        feedItem.classList.add('feed-item');
+                        feedItem.innerHTML = `
+                            <h3>${msg.title}</h3>
+                            <p>${msg.message}</p>
+                            <span class="timestamp">${msg.created_at}</span>
+                        `;
+                        activitiesList.appendChild(feedItem);
+                    });
+                    offset += messages.length;
+                    if (messages.length === limit) {
+                        loadMoreButton.style.display = 'block';
+                    } else {
+                        loadMoreButton.style.display = 'none';
+                    }
+                } else {
+                    loadMoreButton.style.display = 'none';
+                    if (offset === 0) { // No activities at all
+                        activitiesList.innerHTML = '<p>No recent activities.</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching recent activities:', error);
+                if (offset === 0) {
+                    activitiesList.innerHTML = '<p>Failed to load recent activities.</p>';
+                }
+                loadMoreButton.style.display = 'none';
+            }
+        }
+
+        loadMoreButton.addEventListener('click', fetchActivities);
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', fetchActivities);
+    </script>
 </body>
 </html>

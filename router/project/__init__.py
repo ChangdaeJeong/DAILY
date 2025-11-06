@@ -108,9 +108,6 @@ def get_batch_files(project_id, batch_num):
     user_data = session.get('user', {})
     logged_in_user_id = user_data.get('user', {}).get('id')
 
-    if not logged_in_user_id:
-        return jsonify(success=False, msg="로그인이 필요합니다."), 401
-
     try:
         conn = mysql_db.get_conn()
         cursor = conn.cursor(dictionary=True)
@@ -181,11 +178,6 @@ def get_batch_files(project_id, batch_num):
 def get_categorized_projects():
     user_uid = session.get('user_uid')
     logged_in_user_id = session.get('user', {}).get('user', {}).get('id')
-    
-    if not user_uid or not logged_in_user_id:
-        return jsonify(doing_projects=[], init_projects=[], done_projects=[], delete_projects=[],
-                       has_more_doing=False, has_more_init=False, has_more_done=False, has_more_delete=False,
-                       total_doing_projects=0, total_init_projects=0, total_done_projects=0, total_delete_projects=0)
 
     offsets = {
         'offset_doing': request.args.get('offset_doing', 0, type=int),
@@ -206,8 +198,6 @@ def create():
         interface_script = request.form['interface_script']
 
         user = session.get('user', {}).get('user', {})
-        if not user:
-            return jsonify(success=False, msg="로그인된 사용자 정보를 찾을 수 없습니다."), 401
         user_id = user.get('id')# inject_user에서 user_data['user']에 id가 있음
 
         conn = None
@@ -237,9 +227,6 @@ def delete(project_id):
     cursor = None
     user_data = session.get('user', {})
     logged_in_user_id = user_data.get('user', {}).get('id')
-
-    if not logged_in_user_id:
-        return jsonify(success=False, msg="로그인이 필요합니다."), 401
 
     try:
         conn = mysql_db.get_conn()
@@ -278,8 +265,6 @@ def update(project_id):
     logged_in_user_id = user_data.get('user', {}).get('id')
     if_script_content = request.json.get('if_script')
 
-    if not logged_in_user_id:
-        return jsonify(success=False, msg="로그인이 필요합니다."), 401
     if not if_script_content:
         return jsonify(success=False, msg="업데이트할 스크립트 내용이 없습니다."), 400
 
@@ -433,7 +418,7 @@ def init_page(project_id):
         if project['state'] == 'new':
             return render_template('project/init.html', project=project)
         else:
-            return redirect(url_for('main.project.project_detail_page', project_id=project_id))
+            return redirect(url_for('main.project.detail_page', project_id=project_id))
     except Exception as e:
         print(f"Error fetching project details: {e}")
         return "Error loading project details", 500
@@ -514,8 +499,6 @@ def initialize():
     project_id = request.json.get('project_id') # project_id를 data로 받음
     step = request.json.get('step', 0) # step 데이터 추가 (기본값 0)
 
-    if not logged_in_user_id:
-        return jsonify(success=False, msg="로그인이 필요합니다."), 401
     if not project_id:
         return jsonify(success=False, msg="프로젝트 ID가 필요합니다."), 400
 

@@ -5,7 +5,7 @@
     </div>
     <div class="navbar-right">
         <button class="settings-btn" id="user-menu-toggle"> 🙎🏻‍♂️ {{ user.username }} </button>
-        <button class="settings-btn">⚙️</button>
+        <button class="settings-btn" id="settings-btn">⚙️</button>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +24,13 @@
                     if (confirm('로그아웃 하시겠습니까?')) {
                         window.location.href = "{{ url_for('main.auth.logout') }}";
                     }
+                });
+            }
+
+            const settingsBtn = document.getElementById('settings-btn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => {
+                    window.location.href = "{{ url_for('main.setting.setting_page') }}";
                 });
             }
         });

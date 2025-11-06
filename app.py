@@ -15,5 +15,6 @@ app.context_processor(inject.user)
 app.context_processor(inject.sidebar_data)
 
 app.register_blueprint(main_bp)
+
 if __name__ == '__main__':
     app.run(debug=True)

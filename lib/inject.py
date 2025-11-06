@@ -43,11 +43,21 @@ def user():
             if user_record:
                 user_data['user'] = user_record # 최신 레코드 전체를 반환
                 user_data['logged_in'] = True
+
+                # daily_db_setting_config 확인 및 기본값 삽입
+                user_id = user_record['id']
+                cursor.execute("SELECT id FROM daily_db_setting_config WHERE user_id = %s", (user_id,))
+                existing_setting = cursor.fetchone()
+
+                if not existing_setting:
+                    # 기본 설정 삽입
+                    cursor.execute( "INSERT INTO daily_db_setting_config (user_id) VALUES (%s)", (user_id,))
+                    conn.commit()
             else:
                 # 세션에 user_uid가 있지만 DB에서 찾을 수 없는 경우 (예: DB에서 삭제됨)
                 session.pop('user_uid', None) # 세션에서 제거
         except Exception as e:
-            current_app.logger.error(f"Error fetching user data for context processor: {e}", exc_info=True)
+            current_app.logger.error(f"Error fetching user data for context processor or inserting default setting: {e}", exc_info=True)
         finally:
             if cursor:
                 cursor.close()
