@@ -1,11 +1,11 @@
-function showLoadingSpinner() {
+function showLoadingSpinner(msg='DAILY', callback=null) {
     const loadingContainer = document.getElementById('loading-spinner-container');
     if (loadingContainer) {
         loadingContainer.style.display = 'flex'; // 로딩 스피너 표시
 
         const wordElement = document.getElementById('word');
         const text1 = "Dev AI Loop for Your code";
-        const text2 = "DAILY";
+        const text2 = msg;
 
         const createSpans = (text) => {
             wordElement.innerHTML = '';
@@ -50,6 +50,7 @@ function showLoadingSpinner() {
 
             await sleep(text2.length * 60 + 2000);
             hideLoadingSpinner(); // 애니메이션 완료 후 로딩 스피너 숨기기
+            callback && callback();
         })();
     }
 }

@@ -21,12 +21,12 @@
 
         let currentStep = 0;
         const steps = [
-            "Workspace 초기화 중...",
-            "Interface 설치 중...",
-            "Project Init 중...",
-            "Project Build 중...",
-            "Project Run 중...",
-            "프로젝트 하위 파일 검색 중..."
+            "Workspace initialization...",
+            "Installing Interface...",
+            "Initializing Project...",
+            "Building Project...",
+            "Running Project...",
+            "Searching project sub-files..."
         ];
 
         function showInitModal() {
@@ -71,7 +71,7 @@
                             setTimeout(() => runInitializationStep(currentStep), 1000);
                         } else {
                             progressBar.style.width = '100%';
-                            progressBar.textContent = '100% - 프로젝트 초기화 완료!';
+                            progressBar.textContent = '100% - Project initialization complete!';
                             if (data.files) {
                                 // hideInitModal(); // 초기화 모달 숨기기
                                 // displayFilesForSelection(data.files); // 파일 선택 모달 표시 (이 부분은 file_selection_modal.html에서 처리)
@@ -81,31 +81,31 @@
                             } else if (data.redirect_url) {
                                 setTimeout(() => window.location.href = data.redirect_url, 1000);
                             } else {
-                                alert('프로젝트 초기화 완료!');
+                                alert('Project initialization complete!');
                                 hideInitModal();
                                 setTimeout(() => window.location.reload(), 1000);
                             }
                         }
                     } else if (data.redirect_url) {
                         progressBar.style.width = '100%';
-                        progressBar.textContent = '100% - 프로젝트 초기화 완료!';
+                        progressBar.textContent = '100% - Project initialization complete!';
                         setTimeout(() => window.location.href = data.redirect_url, 1000);
                     } else {
-                        alert('프로젝트 초기화 완료!');
+                        alert('Project initialization complete!');
                         hideInitModal();
                         setTimeout(() => window.location.reload(), 1000);
                     }
                 } else {
                     progressBar.style.width = '100%';
-                    progressBar.textContent = '오류 발생 - 초기화 중단';
-                    progressLog.innerHTML += `<p style="color: red;">초기화 실패: ${data.msg}</p>`;
+                    progressBar.textContent = 'Error occurs - Initialization aborted';
+                    progressLog.innerHTML += `<p style="color: red;">Initialization failed: ${data.msg}</p>`;
                     progressLog.innerHTML += `<pre style="background: #f8f8f8; padding: 10px; border: 1px solid #ddd;">STDOUT:\n${data.stdout}\n\nSTDERR:\n${data.stderr}</pre>`;
                     //alert('초기화 실패: ' + data.msg);
                     //hideInitModal();
                 }
             } catch (error) {
-                progressLog.innerHTML += `<p style="color: red;">오류 발생: ${error.message}</p>`;
-                alert('프로젝트 초기화 중 예상치 못한 오류가 발생했습니다.');
+                progressLog.innerHTML += `<p style="color: red;">Error occurs: ${error.message}</p>`;
+                alert('Unexpected error occurred during project initialization.');
                 hideInitModal();
             }
         }
@@ -114,14 +114,14 @@
             initProjectBtn.addEventListener('click', async function() {
                 const ifScriptContent = document.getElementById('if_script_textarea').value;
 
-                if (confirm('프로젝트를 초기화하시겠습니까? 이 작업은 인터페이스 스크립트를 저장하고 프로젝트 디렉토리를 생성하며 스크립트를 실행합니다.')) {
+                if (confirm('Do you want to initialize the project? System will run several steps to set up the project.')) {
                     showInitModal(); // Initialize 버튼 클릭 시 초기화 모달 띄우기
 
                     try {
                         // 1. if_script 업데이트
                         progressBar.style.width = '0%';
-                        progressBar.textContent = '0% - 인터페이스 스크립트 저장 중...';
-                        progressLog.innerHTML += `<p><strong>인터페이스 스크립트 저장 중...</strong></p>`;
+                        progressBar.textContent = '0% - Upload Interface Script ...';
+                        progressLog.innerHTML += `<p><strong>Upload Interface Script ...</strong></p>`;
                         const updateResponse = await fetch(`/project/update/${projectId}`, {
                             method: 'POST',
                             headers: {
@@ -134,7 +134,7 @@
                         progressLog.innerHTML += `<p>${updateData.msg}</p>`;
 
                         if (!updateData.success) {
-                            alert('인터페이스 스크립트 저장 실패: ' + updateData.msg);
+                            alert('Upload Interface Script failed: ' + updateData.msg);
                             hideInitModal();
                             return;
                         }
@@ -144,7 +144,7 @@
 
                     } catch (error) {
                         console.error('Error during project initialization setup:', error);
-                        alert('프로젝트 초기화 설정 중 예상치 못한 오류가 발생했습니다.');
+                        alert('Unexpected error occurred during project initialization setup.');
                         hideInitModal();
                     }
                 }

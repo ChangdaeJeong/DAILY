@@ -254,6 +254,50 @@ def delete(project_id):
     finally:
         if cursor:
             cursor.close()
+            if conn:
+                mysql_db.close_conn(conn)
+
+@project_bp.route('/update_state/<int:project_id>', methods=['POST'])
+def update_state(project_id):
+    conn = None
+    cursor = None
+    user_data = session.get('user', {})
+    logged_in_user_id = user_data.get('user', {}).get('id')
+    new_state = request.json.get('state')
+
+    if not new_state:
+        return jsonify(success=False, msg="업데이트할 상태가 없습니다."), 400
+
+    try:
+        conn = mysql_db.get_conn()
+        cursor = conn.cursor(dictionary=True)
+
+        # 프로젝트 소유자 확인
+        cursor.execute("SELECT user_id FROM daily_db_projects WHERE id = %s", (project_id,))
+        project = cursor.fetchone()
+
+        if not project:
+            return jsonify(success=False, msg="프로젝트를 찾을 수 없습니다."), 404
+
+        if project['user_id'] != logged_in_user_id:
+            return jsonify(success=False, msg="접근 거부: 이 프로젝트의 소유자가 아닙니다."), 403
+
+        # 프로젝트 상태 업데이트
+        cursor.execute("UPDATE daily_db_projects SET state = %s WHERE id = %s", (new_state, project_id))
+        conn.commit()
+
+        redirect_url = None
+        if new_state == 'new':
+            redirect_url = url_for('main.project.init_page', project_id=project_id)
+
+        return jsonify(success=True, msg=f"프로젝트 상태가 '{new_state}'(으)로 성공적으로 업데이트되었습니다.", redirect_url=redirect_url)
+
+    except Exception as e:
+        current_app.logger.error(f"프로젝트 상태 업데이트 중 오류 발생: {e}", exc_info=True)
+        return jsonify(success=False, msg=f"프로젝트 상태 업데이트 중 오류 발생: {e}"), 500
+    finally:
+        if cursor:
+            cursor.close()
         if conn:
             mysql_db.close_conn(conn)
 

@@ -192,27 +192,32 @@
                 progressLog.innerHTML = '';
             });
 
+            // 프로젝트 삭제 버튼 클릭 이벤트
             if (deleteProjectBtn) {
                 deleteProjectBtn.addEventListener('click', function() {
-                    if (confirm('프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-                        fetch(`/project/delete/${projectId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert(data.msg);
-                                window.location.reload();
-                            } else {
-                                alert('삭제 실패: ' + data.msg);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error deleting project:', error);
-                            alert('프로젝트 삭제 중 예상치 못한 오류가 발생했습니다.');
+                    if (confirm('Do you want to end the project batch?')) {
+                        showLoadingSpinner("Ending Project Batch...", () => {
+                            fetch(`/project/delete/${projectId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                hideLoadingSpinner();
+                                if (data.success) {
+                                    alert(data.msg);
+                                    window.location.reload();
+                                } else {
+                                    alert('Failed to end project batch: ' + data.msg);
+                                }
+                            })
+                            .catch(error => {
+                                hideLoadingSpinner();
+                                console.error('Error ending project batch:', error);
+                                alert('An unexpected error occurred while ending the project batch.');
+                            });
                         });
                     }
                 });

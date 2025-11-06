@@ -14,10 +14,10 @@
                 </a>
             </li>
             {% else %}
-            <li>No doing projects found.</li>
+            <li><a href="#">No doing projects found.</a></li>
             {% endfor %}
         </ul>
-        <button class="load-more-btn btn" data-category="doing" data-offset="{{ sidebar_projects_data.doing_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_doing %}style="display: none;"{% endif %}>더보기</button>
+        <a class="load-more-btn" data-category="doing" data-offset="{{ sidebar_projects_data.doing_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_doing %}style="display: none;"{% endif %}>더보기</a>
     </div>
 
     <div class="project-category">
@@ -35,10 +35,10 @@
                 </a>
             </li>
             {% else %}
-            <li>No initializing projects found.</li>
+            <li><a href="#">No initializing projects found.</a></li>
             {% endfor %}
         </ul>
-        <button class="load-more-btn btn" data-category="init" data-offset="{{ sidebar_projects_data.init_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_init %}style="display: none;"{% endif %}>더보기</button>
+        <a class="load-more-btn" data-category="init" data-offset="{{ sidebar_projects_data.init_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_init %}style="display: none;"{% endif %}>더보기</a>
     </div>
 
     <div class="project-category collapsed">
@@ -56,10 +56,10 @@
                 </a>
             </li>
             {% else %}
-            <li>No completed projects found.</li>
+            <li><a href="#">No completed projects found.</a></li>
             {% endfor %}
         </ul>
-        <button class="load-more-btn btn" data-category="done" data-offset="{{ sidebar_projects_data.done_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_done %}style="display: none;"{% endif %}>더보기</button>
+        <a class="load-more-btn" data-category="done" data-offset="{{ sidebar_projects_data.done_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_done %}style="display: none;"{% endif %}>더보기</a>
     </div>
 
     <div class="project-category collapsed">
@@ -77,10 +77,10 @@
                 </a>
             </li>
             {% else %}
-            <li>No deleted projects found.</li>
+            <li><a href="#">No deleted projects found.</a></li>
             {% endfor %}
         </ul>
-        <button class="load-more-btn btn" data-category="delete" data-offset="{{ sidebar_projects_data.delete_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_delete %}style="display: none;"{% endif %}>더보기</button>
+        <a class="load-more-btn" data-category="delete" data-offset="{{ sidebar_projects_data.delete_projects|length if sidebar_projects_data else 0 }}" {% if not sidebar_projects_data.has_more_delete %}style="display: none;"{% endif %}>더보기</a>
     </div>
 </div>
 
