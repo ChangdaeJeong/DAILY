@@ -11,8 +11,8 @@ app.before_first_request(mysql_db.create_db_pool)
 app.before_first_request(lambda: setattr(app, 'bcrypt', Bcrypt(app)))
 app.before_request(inject.check_login_status)
 
-app.context_processor(inject.sidebar_data)
 app.context_processor(inject.user)
+app.context_processor(inject.sidebar_data)
 
 app.register_blueprint(main_bp)
 if __name__ == '__main__':
