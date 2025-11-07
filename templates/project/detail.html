@@ -220,7 +220,7 @@
                                             analysisDetailsHtml += `
                                                 <li>
                                                     <p><strong>결함:</strong> ${detail.flaw_detail || '없음'}</p>
-                                                    <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg="${detail.patch_msgs}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
+                                                    <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg-id="${file.file_id}" data-analysis-id="${detail.id}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
                                                     <p><strong>실행 타입:</strong> ${detail.execute_type || '없음'}</p>
                                                     <p><strong>실행 성공:</strong> ${detail.execute_succeed ? '예' : '아니오'}</p>
                                                     <p><strong>실행 메시지:</strong> ${detail.execute_msgs || '없음'}</p>
@@ -307,7 +307,7 @@
                                                     analysisDetailsHtml += `
                                                         <li>
                                                             <p><strong>결함:</strong> ${detail.flaw_detail || '없음'}</p>
-                                                            <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg="${detail.patch_msgs}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
+                                                            <p><strong>패치 메시지:</strong> <span class="${patchMsgClass}" data-patch-msg-id="${file.file_id}" data-analysis-id="${detail.id}">${detail.patch_msgs ? 'Diff 보기' : '없음'}</span></p>
                                                             <p><strong>실행 타입:</strong> ${detail.execute_type || '없음'}</p>
                                                             <p><strong>실행 성공:</strong> ${detail.execute_succeed ? '예' : '아니오'}</p>
                                                             <p><strong>실행 메시지:</strong> ${detail.execute_msgs || '없음'}</p>
@@ -362,11 +362,26 @@
             });
 
             // Patch Message Link 클릭 이벤트 (이벤트 위임)
-            batchAccordion.addEventListener('click', function(event) {
+            batchAccordion.addEventListener('click', async function(event) {
                 if (event.target.classList.contains('patch-msg-link')) {
-                    const patchMsg = event.target.dataset.patchMsg;
-                    patchDiffContent.textContent = patchMsg;
-                    patchDiffModal.style.display = 'block';
+                    const fileId = event.target.dataset.patchMsgId;
+                    const analysisId = event.target.dataset.analysisId;
+
+                    try {
+                        // 서버에서 해당 analysis_id의 patch_msgs를 직접 가져옴
+                        const response = await fetch(`/project/get_patch_message/${fileId}/${analysisId}`);
+                        const data = await response.json();
+
+                        if (data.success && data.patch_msgs) {
+                            patchDiffContent.textContent = data.patch_msgs;
+                            patchDiffModal.style.display = 'block';
+                        } else {
+                            alert('패치 내용을 불러오는데 실패했습니다: ' + data.msg);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching patch message:', error);
+                        alert('패치 내용을 불러오는 중 오류 발생.');
+                    }
                 }
             });
         });

@@ -128,38 +128,40 @@ def get_batch_files(project_id, batch_num):
                 dpf.id AS file_id,
                 dpf.filepath,
                 dpf.result,
-                dpf.flaws,
-                GROUP_CONCAT(CONCAT_WS('||', dptfa.flaw_detail, dptfa.patch_msgs, dptfa.execute_type, dptfa.execute_succeed, dptfa.execute_msgs) SEPARATOR '@@') AS analysis_details
+                dpf.flaws
             FROM
                 daily_db_project_files dpf
-            LEFT JOIN
-                daily_db_project_task_file_analysis dptfa ON dpf.id = dptfa.file_id
             WHERE
                 dpf.prj_id = %s AND dpf.batch = %s
-            GROUP BY
-                dpf.id, dpf.filepath, dpf.result, dpf.flaws
             ORDER BY
                 dpf.filepath
         """, (project_id, batch_num))
         files_data = cursor.fetchall()
 
-        # analysis_details 파싱
+        # 각 파일에 대한 analysis_details를 별도로 가져오기
         for file_data in files_data:
-            if file_data['analysis_details']:
-                analysis_list = []
-                for detail_str in file_data['analysis_details'].split('@@'):
-                    parts = detail_str.split('||')
-                    if len(parts) == 5:
-                        analysis_list.append({
-                            'flaw_detail': parts[0],
-                            'patch_msgs': parts[1],
-                            'execute_type': parts[2],
-                            'execute_succeed': parts[3] == '1', # BOOLEAN으로 변환
-                            'execute_msgs': parts[4]
-                        })
-                file_data['analysis_details'] = analysis_list
-            else:
-                file_data['analysis_details'] = []
+            cursor.execute("""
+                SELECT
+                    id,
+                    flaw_detail,
+                    patch_msgs,
+                    execute_type,
+                    execute_succeed,
+                    execute_msgs
+                FROM
+                    daily_db_project_task_file_analysis
+                WHERE
+                    file_id = %s
+                ORDER BY
+                    id ASC
+            """, (file_data['file_id'],))
+            analysis_list = cursor.fetchall()
+            
+            # execute_succeed를 BOOLEAN으로 변환
+            for analysis in analysis_list:
+                analysis['execute_succeed'] = bool(analysis['execute_succeed'])
+
+            file_data['analysis_details'] = analysis_list
 
         return jsonify(success=True, files=files_data)
 
@@ -173,6 +175,49 @@ def get_batch_files(project_id, batch_num):
             mysql_db.close_conn(conn)
 
     return results
+
+@project_bp.route('/get_patch_message/<int:file_id>/<int:analysis_id>', methods=['GET'])
+def get_patch_message(file_id, analysis_id):
+    conn = None
+    cursor = None
+    user_data = session.get('user', {})
+    logged_in_user_id = user_data.get('user', {}).get('id')
+
+    try:
+        conn = mysql_db.get_conn()
+        cursor = conn.cursor(dictionary=True)
+
+        # 파일 소유자 확인 (프로젝트를 통해)
+        cursor.execute("""
+            SELECT dp.user_id FROM daily_db_project_files dpf
+            JOIN daily_db_projects dp ON dpf.prj_id = dp.id
+            WHERE dpf.id = %s
+        """, (file_id,))
+        file_owner = cursor.fetchone()
+
+        if not file_owner or file_owner['user_id'] != logged_in_user_id:
+            return jsonify(success=False, msg="접근 거부: 이 파일의 소유자가 아닙니다."), 403
+
+        # 특정 analysis_id의 patch_msgs 가져오기
+        cursor.execute("""
+            SELECT patch_msgs FROM daily_db_project_task_file_analysis
+            WHERE id = %s AND file_id = %s
+        """, (analysis_id, file_id))
+        analysis_record = cursor.fetchone()
+
+        if analysis_record:
+            return jsonify(success=True, patch_msgs=analysis_record['patch_msgs'])
+        else:
+            return jsonify(success=False, msg="패치 메시지를 찾을 수 없습니다."), 404
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching patch message: {e}", exc_info=True)
+        return jsonify(success=False, msg=f"패치 메시지를 가져오는 중 오류 발생: {e}"), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            mysql_db.close_conn(conn)
 
 @project_bp.route('/get_categorized_projects')
 def get_categorized_projects():
