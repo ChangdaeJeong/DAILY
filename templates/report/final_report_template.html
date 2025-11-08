@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>최종 레포트 - 프로젝트 {{ data.project.name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 900px; margin: 20px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #0056b3; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .info-table th, .info-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .info-table th { background-color: #e9ecef; width: 150px; }
+        .file-list { margin-top: 20px; }
+        .file-item { background-color: #eaf4ff; border-left: 5px solid #007bff; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .file-item h3 { margin-top: 0; color: #007bff; }
+        .file-item p { margin: 5px 0; }
+        .flaws { color: #dc3545; font-weight: bold; }
+        .no-flaws { color: #28a745; font-weight: bold; }
+        .footer { text-align: center; margin-top: 40px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>최종 레포트</h1>
+            <p>생성일: {{ data.generation_date }}</p>
+        </div>
+
+        <h2>프로젝트 정보</h2>
+        <table class="info-table">
+            <tr>
+                <th>프로젝트 이름</th>
+                <td>{{ data.project.name }}</td>
+            </tr>
+            <tr>
+                <th>프로젝트 ID</th>
+                <td>{{ data.project.id }}</td>
+            </tr>
+            <tr>
+                <th>현재 배치</th>
+                <td>{{ data.batch }}</td>
+            </tr>
+            <tr>
+                <th>레포트 기간</th>
+                <td>전체 기간</td>
+            </tr>
+        </table>
+
+        <h2>파일 처리 요약</h2>
+        <table class="info-table">
+            <tr>
+                <th>총 파일 수</th>
+                <td>{{ data.file_summary.total }}개</td>
+            </tr>
+            <tr>
+                <th>완료된 파일</th>
+                <td>{{ data.file_summary.completed }}개</td>
+            </tr>
+            <tr>
+                <th>건너뛴 파일</th>
+                <td>{{ data.file_summary.skipped }}개</td>
+            </tr>
+            <tr>
+                <th>실패한 파일</th>
+                <td>{{ data.file_summary.failed }}개</td>
+            </tr>
+            <tr>
+                <th>대기 중인 파일</th>
+                <td>{{ data.file_summary.queued }}개</td>
+            </tr>
+        </table>
+
+        <h2>분석된 파일</h2>
+        {% if data.files %}
+            <div class="file-list">
+                {% for file in data.files %}
+                    <div class="file-item">
+                        <h3>{{ file.filepath }}</h3>
+                        <p><strong>결과:</strong> {{ file.result }}</p>
+                        <p><strong>업데이트 날짜:</strong> {{ file.update_date }}</p>
+                        {% if file.flaws %}
+                            <p class="flaws"><strong>취약점:</strong> {{ file.flaws }}</p>
+                        {% else %}
+                            <p class="no-flaws"><strong>취약점:</strong> 없음</p>
+                        {% endif %}
+
+                        {% if file.analysis_results %}
+                            <h4>분석 상세:</h4>
+                            {% set latest_analysis = file.analysis_results[0] %} {# 가장 마지막 (최신) analysis #}
+                            <div style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+                                <p><strong>결함:</strong> {{ latest_analysis.flaw_detail }}</p>
+                                <p><strong>패치 메시지:</strong> 
+                                    {% if latest_analysis.patch_msgs %}
+                                        <pre style="background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{{ latest_analysis.patch_msgs }}</pre>
+                                    {% else %}
+                                        없음
+                                    {% endif %}
+                                </p>
+                                <p><strong>실행 타입:</strong> {{ latest_analysis.execute_type }}</p>
+                                <p><strong>실행 성공:</strong> {{ "예" if latest_analysis.execute_succeed else "아니오" }}</p>
+                                <p><strong>실행 메시지:</strong> {{ latest_analysis.execute_msgs }}</p>
+                            </div>
+                        {% else %}
+                            <p>이 파일에 대한 상세 분석 결과가 없습니다.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>해당 프로젝트의 분석된 파일이 없습니다.</p>
+        {% endif %}
+
+        <div class="footer">
+            <p>&copy; {{ data.generation_date.split(' ')[0].split('-')[0] }} DAILY Report System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

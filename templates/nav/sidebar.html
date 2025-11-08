@@ -91,7 +91,7 @@
         function createProjectListItem(project) {
             const listItem = document.createElement('li');
             const link = document.createElement('a');
-            link.href = `/project/${project.id}`; // 프로젝트 상세 페이지 URL
+            link.href = `/project/detail/${project.id}`; // 프로젝트 상세 페이지 URL
             link.innerHTML = `
                 <span>${project.name}</span>
                 ${project.state === 'doing' ?

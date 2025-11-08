@@ -46,6 +46,7 @@
                         feedItem.classList.add('feed-item');
                         feedItem.innerHTML = `
                             <h3>${msg.title}</h3>
+                            <p>In <strong><a href="/project/detail/${msg.project_id}">${msg.project_name}</a></strong></p>
                             <p>${msg.message}</p>
                             <span class="timestamp">${msg.created_at}</span>
                         `;

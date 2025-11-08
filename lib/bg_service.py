@@ -138,9 +138,15 @@ class BackgroundService(threading.Thread):
         full_filepath = os.path.join(project_root_dir, filepath) # 절대 경로 생성
         print(full_filepath)
         source_code = ""
-        with open(full_filepath, 'r', encoding='utf-8') as f:
-            source_code = f.read()
-        
+        if os.path.exists(full_filepath):
+            with open(full_filepath, 'r', encoding='utf-8') as f:
+                source_code = f.read()
+        else:
+            print(f"      Failed to open source {filepath}")
+            cursor.execute("UPDATE daily_db_project_files SET flaws = %s, result = %s WHERE id = %s", ('File is not found', 'Failed', file_id,))
+            conn.commit()
+            return
+
         # 5.1 AI 서비스 호출하여 중대한 문제점 1가지 요청 후 flaws 업데이트
         ai_review = self.call_ai_for_flaw(filepath, source_code) # AI 서비스 호출 (래퍼 함수)
         ai_flaw_str = "No flaw detected by AI." # 기본값 설정
@@ -171,9 +177,7 @@ class BackgroundService(threading.Thread):
         print(f"      Last analysis for {filepath}: Type={last_execute_type}, Msgs={last_execute_msgs}")
 
         # 6. 문제점과 analysis 레코드의 execute type, msg정보를 추가해 패치 생성 요청
-        patch_review = self.call_ai_for_patch(filepath, source_code, last_patch_msgs, f"type: {last_execute_type}\nmsg: {last_execute_msgs}") # AI 서비스 호출 (래퍼 함수)
-        patch_msgs = patch_review['patch']
-        patch_explanation = patch_review['explanation']
+        patch_msgs, patch_explanation = self.call_ai_for_patch(filepath, source_code, last_patch_msgs, f"type: {last_execute_type}\nmsg: {last_execute_msgs}") # AI 서비스 호출 (래퍼 함수)
 
         new_analysis_id = None
         if not patch_msgs or patch_msgs.strip() == "No patch needed.": # 6.1 수정할 내용이 없다면 execute_type을 no patch로 저장
@@ -259,19 +263,19 @@ class BackgroundService(threading.Thread):
         return cursor.fetchone()
 
     def call_ai_for_patch(self, filepath, source_code, last_patch_msgs, last_execute_msgs):
-        return '--- /projects/init1/file_a.py\n+++ /projects/init1/file_a.py\n@@ -3,5 +3,8 @@\n if __name__ == "__main__":\n     # div by zero error\n-    print(10 / 0)\n+    try:\n+        print(10 / 0)\n+    except ZeroDivisionError:\n+        print("Error: Attempted to divide by zero!")\n     print("End of file_a.py")\n'
+        return '--- /projects/init1/file_a.py\n+++ /projects/init1/file_a.py\n@@ -3,5 +3,8 @@\n if __name__ == "__main__":\n     # div by zero error\n-    print(10 / 0)\n+    try:\n+        print(10 / 0)\n+    except ZeroDivisionError:\n+        print("Error: Attempted to divide by zero!")\n     print("End of file_a.py")\n', 'Yes it is'
         try:
             response = gemini.chat(get_patch_prompt.format(filepath=filepath, source_code=source_code, previous_patch=last_patch_msgs, patch_problem_description=last_execute_msgs))
             print(f"call ai for patch response: {response}")
             rsp = json.loads(response)
             if 'patch' in rsp and 'explanation' in rsp:
-                return rsp
+                return rsp['patch'], rsp['explanation']
             else:
                 print("        AI service returned no patch content.")
-                return "No patch needed."
+                return "No patch needed.", None
         except Exception as e:
             print(f"        Error calling Gemini API for patch generation: {e}")
-            return "No patch needed."
+            return "No patch needed.", None
 
     def insert_analysis_record(self, conn, cursor, file_id, flaw_detail, patch_msgs, execute_type, execute_succeed, execute_msgs):
         cursor.execute("""

@@ -132,6 +132,18 @@ CREATE TABLE IF NOT EXISTS daily_db_messages (
     FOREIGN KEY (project_id) REFERENCES daily_db_projects(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS daily_db_report_list (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    prj_id INT NOT NULL,
+    batch INT NOT NULL,
+    report_type VARCHAR(20) NOT NULL, -- daily, weekly, monthly, final
+    report_path VARCHAR(2000),
+    state VARCHAR(20) DEFAULT 'Queued', -- Queued, Generating, Completed, Failed, Sent
+    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (prj_id) REFERENCES daily_db_projects(id) ON DELETE CASCADE
+);
+
 -- daily_db_messages 더미 데이터 (20개)
 INSERT INTO daily_db_messages (project_id, title, message) VALUES
 ((SELECT id FROM daily_db_projects WHERE name = 'New Project 1'), '프로젝트 생성', '프로젝트 "New Project 1"이 새로 생성되었습니다.'),
